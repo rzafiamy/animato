@@ -277,7 +277,7 @@ async def get_storyboard(project_id: str) -> List[Dict[str, Any]]:
     sb_path = project_dir(project_id) / "output" / "storyboard.json"
     if not sb_path.exists():
         raise HTTPException(404, "Storyboard not generated yet")
-    return json.loads(sb_path.read_text(encoding="utf-8"))
+    return json.loads(sb_path.read_text(encoding="utf-8"), strict=False)
 
 
 class SlideUpdate(BaseModel):

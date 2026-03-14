@@ -56,10 +56,10 @@ DESIGN_STYLES: Dict[str, dict] = {
         "bullet_shadow": "0x000d1f@0.70",
         "sep_color": "0x38bdf8@0.80",
         "sep_h": 4,
-        "bullet_char": "› ",
+        "bullet_char": "- ",
         "title_scale": 1.08,
-        "overlay_top": "0x000d1f@0.45",   # reduced opacity
-        "overlay_bot": "0x000a18@0.35",
+        "overlay_top": "0x000d1f@0.40",   # further reduced opacity
+        "overlay_bot": "0x000a18@0.30",
         "shadow_x": 3, "shadow_y": 3,
         "title_uppercase": True,
         "box": False,
@@ -74,10 +74,10 @@ DESIGN_STYLES: Dict[str, dict] = {
         "bullet_shadow": "0x3d1500@0.70",
         "sep_color": "0xc9a02a@0.80",
         "sep_h": 5,
-        "bullet_char": "◆ ",
+        "bullet_char": "* ",
         "title_scale": 0.96,
-        "overlay_top": "0x1a0800@0.55",   # reduced opacity
-        "overlay_bot": "0x1a0800@0.40",
+        "overlay_top": "0x1a0800@0.45",   # further reduced opacity
+        "overlay_bot": "0x1a0800@0.32",
         "shadow_x": 4, "shadow_y": 4,
         "title_uppercase": False,
         "box": False,
@@ -92,10 +92,10 @@ DESIGN_STYLES: Dict[str, dict] = {
         "bullet_shadow": "0x400020@0.70",
         "sep_color": "0xffb6c1@0.85",
         "sep_h": 6,
-        "bullet_char": "• ",
+        "bullet_char": "- ",
         "title_scale": 1.12,
-        "overlay_top": "0x1a0030@0.42",   # reduced opacity
-        "overlay_bot": "0x0a0020@0.30",
+        "overlay_top": "0x1a0030@0.38",   # further reduced opacity
+        "overlay_bot": "0x0a0020@0.22",
         "shadow_x": 3, "shadow_y": 3,
         "title_uppercase": False,
         "box": False,
@@ -117,7 +117,7 @@ DESIGN_STYLES: Dict[str, dict] = {
         "shadow_x": 2, "shadow_y": 2,
         "title_uppercase": True,
         "box": True,
-        "boxcolor": "0x00101a@0.55",       # more transparent box
+        "boxcolor": "0x00101a@0.45",       # more transparent box
         "boxborderw": 12,
         "font_style": "mono",
     },
@@ -173,9 +173,9 @@ def _ffmpeg_path() -> str:
 
 _FONT_PATHS: Dict[str, List[str]] = {
     "bold_sans": [
-        "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
         "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
         "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
         "/System/Library/Fonts/Helvetica.ttc",
         "/Library/Fonts/Arial Bold.ttf",
@@ -183,14 +183,14 @@ _FONT_PATHS: Dict[str, List[str]] = {
     "serif": [
         "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf",
         "/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf",
-        "/usr/share/fonts/truetype/freefont/FreeSerifBold.ttf",
         "/usr/share/fonts/truetype/noto/NotoSerif-Bold.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeSerifBold.ttf",
         "/usr/share/fonts/truetype/gentium/GentiumBookBasic-Bold.ttf",
     ],
     "rounded": [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",  # DejaVu is more symbol-heavy
         "/usr/share/fonts/truetype/ubuntu/Ubuntu-B.ttf",
         "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
     ],
     "mono": [
         "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf",
@@ -199,9 +199,9 @@ _FONT_PATHS: Dict[str, List[str]] = {
         "/usr/share/fonts/truetype/freefont/FreeMono.ttf",
     ],
     "light": [
-        "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
         "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
     ],
 }
@@ -436,15 +436,15 @@ def _build_visual_filters(
 
     elif layout == "lower_third":
         # News broadcast: strong bottom band, compact text at bottom
-        grad_y = int(H * 0.58)  # shifted down
-        box(0, grad_y, W, H - grad_y, "black@0.65") # reduced alpha from 0.82
-        title_y = int(H * 0.65)
+        grad_y = int(H * 0.62)  # shifted down further
+        box(0, grad_y, W, H - grad_y, "black@0.42") # further reduced alpha from 0.65
+        title_y = int(H * 0.68)
         # Short accent bar above title
         sep(pad_x, title_y - 12, 80, sep_h + 2)
         title(str(pad_x), title_y, title_size,
               alpha=_fade_in(0.2, 0.7),
               y_expr=_slide_up_y(title_y, 0.2, 0.7, 14))
-        bul_y = int(H * 0.76)
+        bul_y = int(H * 0.78)
         for i, b in enumerate(bullets[:3]):
             bullet(b, str(pad_x), bul_y + i * line_h,
                    alpha=_fade_in(0.55 + i * 0.2, 0.55))
@@ -452,8 +452,8 @@ def _build_visual_filters(
     elif layout == "cinematic":
         # Epic: vignette edges, large centered title, minimal text
         # Use very subtle vignette-like boxes
-        box(0, 0, W, int(H * 0.18), "black@0.55")
-        box(0, int(H * 0.82), W, int(H * 0.18), "black@0.55")
+        box(0, 0, W, int(H * 0.16), "black@0.35") # reduced alpha and size
+        box(0, int(H * 0.84), W, int(H * 0.16), "black@0.35")
         big_size = int(title_size * 1.28)
         title_y = int(H * 0.40)
         title("(W-tw)/2", title_y, big_size,
@@ -601,7 +601,7 @@ def _build_visual_filters(
     elif layout == "ribbon":
         # Horizontal dark band across mid-screen, text inside
         rib_y, rib_h = int(H * 0.40), int(H * 0.22) # smaller ribbon
-        box(0, rib_y, W, rib_h, "black@0.65") # reduced from 0.85
+        box(0, rib_y, W, rib_h, "black@0.42") # further reduced from 0.65
         title_y = rib_y + 18
         title("(W-tw)/2", title_y, title_size,
               alpha=_fade_in(0.3, 0.8), y_expr=_slide_up_y(title_y, 0.3, 0.8, 14))
@@ -614,7 +614,7 @@ def _build_visual_filters(
     elif layout == "news_full":
         # Wide deep bottom band (full newscast style)
         grad_y = int(H * 0.55) # shifted down
-        box(0, grad_y, W, H - grad_y, "black@0.65") # reduced from 0.90
+        box(0, grad_y, W, H - grad_y, "black@0.45") # further reduced from 0.65
         sep(0, grad_y, W, sep_h + 2)
         title_y = grad_y + 22
         title(str(pad_x), title_y, title_size,
@@ -801,8 +801,8 @@ def _build_visual_filters(
 
     elif layout == "reveal":
         # Strong reveal gradient from bottom, text in gradient zone
-        box(0, int(H * 0.50), W, int(H * 0.20), "black@0.35") # reduced alpha and size
-        box(0, int(H * 0.70), W, int(H * 0.30), "black@0.65")
+        box(0, int(H * 0.55), W, int(H * 0.15), "black@0.25") # further reduced alpha
+        box(0, int(H * 0.70), W, int(H * 0.30), "black@0.45")
         title_y = int(H * 0.72)
         title(str(pad_x), title_y, title_size,
               alpha=_fade_in(0.3, 0.8), y_expr=_slide_up_y(title_y, 0.3, 0.8, 18))
@@ -1138,7 +1138,7 @@ def _save_storyboard(path: Path, slides: List[Slide]) -> None:
 
 
 def _load_storyboard(path: Path) -> List[Slide]:
-    data = json.loads(path.read_text(encoding="utf-8"))
+    data = json.loads(path.read_text(encoding="utf-8"), strict=False)
     slides: List[Slide] = []
     for item in data:
         slides.append(Slide(

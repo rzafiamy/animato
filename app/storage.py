@@ -41,7 +41,7 @@ def read_status(project_id: str) -> Dict[str, Any]:
     if not path.exists():
         return {"state": "new", "progress": 0, "message": "Not started"}
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        return json.loads(path.read_text(encoding="utf-8"), strict=False)
     except (json.JSONDecodeError, OSError):
         return {"state": "unknown", "progress": 0, "message": "Status unreadable (corrupted)"}
 

@@ -89,7 +89,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "natural daylight tones, neutral greys and warm whites, photorealistic palette",
         "preview_colors": ["#1a1a1a", "#38bdf8", "#d4d4d4"],
         "title_color": "white", "accent_color": "#38bdf8", "bullet_color": "#e2e8f0",
-        "font_style": "bold_sans", "bullet_char": "•",
+        "font_style": "bold_sans", "bullet_char": "-",
     },
     "cinematic_pro": {
         "name": "Cinematic Pro",
@@ -99,7 +99,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "dramatic deep blue-silver cinematic colour grade, warm amber highlights, rich shadow contrast",
         "preview_colors": ["#0d1929", "#38bdf8", "#c8922a"],
         "title_color": "white", "accent_color": "#c8922a", "bullet_color": "#d1d5db",
-        "font_style": "bold_sans", "bullet_char": "•",
+        "font_style": "bold_sans", "bullet_char": "-",
     },
     # ── Sci-Fi & Futurism ─────────────────────────────────────────────────
     "neon_pulse": {
@@ -110,7 +110,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "electric neon cyan and magenta on dark rain-wet streets, holographic atmosphere",
         "preview_colors": ["#050510", "#00ffcc", "#ff00cc"],
         "title_color": "#00ffcc", "accent_color": "#00ffcc", "bullet_color": "#ff00cc",
-        "font_style": "mono", "bullet_char": "›",
+        "font_style": "mono", "bullet_char": "-",
     },
     "futuristic_ui": {
         "name": "Futuristic HUD",
@@ -120,7 +120,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "holographic teal and electric blue glyphs, translucent dark panels, sci-fi glow",
         "preview_colors": ["#030d1a", "#00d4ff", "#0066ff"],
         "title_color": "#00d4ff", "accent_color": "#00d4ff", "bullet_color": "#9ca3af",
-        "font_style": "mono", "bullet_char": "›",
+        "font_style": "mono", "bullet_char": "-",
     },
     "retro_synthwave": {
         "name": "Retro Synthwave",
@@ -130,7 +130,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "magenta-pink sunset gradient, chrome reflective grid, electric violet and hot pink",
         "preview_colors": ["#08001a", "#ff2d78", "#b24bff"],
         "title_color": "#ff2d78", "accent_color": "#b24bff", "bullet_color": "#fbcfe8",
-        "font_style": "mono", "bullet_char": "◆",
+        "font_style": "mono", "bullet_char": "*",
     },
     # ── Illustration & Animation ──────────────────────────────────────────
     "cartoon_pop": {
@@ -141,7 +141,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "vivid primary colours, bold black outlines, flat saturated palette, playful mood",
         "preview_colors": ["#1a0a2e", "#ff6eb4", "#ffe066"],
         "title_color": "#ff6eb4", "accent_color": "#ffe066", "bullet_color": "white",
-        "font_style": "rounded", "bullet_char": "•",
+        "font_style": "rounded", "bullet_char": "-",
     },
     "pixar_3d": {
         "name": "Pixar 3D",
@@ -151,7 +151,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "warm polished 3D render tones, rich saturated highlights, friendly colour palette",
         "preview_colors": ["#0a1a30", "#ff6eb4", "#f5a623"],
         "title_color": "white", "accent_color": "#f5a623", "bullet_color": "#ffb6c1",
-        "font_style": "rounded", "bullet_char": "●",
+        "font_style": "rounded", "bullet_char": "-",
     },
     "corporate_pro": {
         "name": "Corporate Pro",
@@ -161,7 +161,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "clean sky-blue and teal flat palette, crisp white space, professional cool tones",
         "preview_colors": ["#061428", "#0ea5e9", "#38bdf8"],
         "title_color": "white", "accent_color": "#0ea5e9", "bullet_color": "#cbd5e1",
-        "font_style": "bold_sans", "bullet_char": "▸",
+        "font_style": "bold_sans", "bullet_char": "-",
     },
     "isometric_tech": {
         "name": "Isometric Tech",
@@ -171,7 +171,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "bright tech blues and greens, crisp geometric isometric palette, clean white highlights",
         "preview_colors": ["#080f20", "#38bdf8", "#34d399"],
         "title_color": "white", "accent_color": "#38bdf8", "bullet_color": "#34d399",
-        "font_style": "bold_sans", "bullet_char": "■",
+        "font_style": "bold_sans", "bullet_char": "-",
     },
     "kawaii_dream": {
         "name": "Kawaii Dream",
@@ -181,7 +181,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "soft pastel pink lavender and cream, warm gentle light, adorable cute mood",
         "preview_colors": ["#1a0830", "#ff6eb4", "#ffcce8"],
         "title_color": "#ff6eb4", "accent_color": "#ffcce8", "bullet_color": "white",
-        "font_style": "rounded", "bullet_char": "•",
+        "font_style": "rounded", "bullet_char": "-",
     },
     "claymation": {
         "name": "Claymation",
@@ -191,7 +191,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "warm clay earth tones, soft pastel highlights, handmade tactile palette",
         "preview_colors": ["#1a0f0a", "#ff6eb4", "#f5c07a"],
         "title_color": "#f5c07a", "accent_color": "#ff6eb4", "bullet_color": "#fef3c7",
-        "font_style": "rounded", "bullet_char": "●",
+        "font_style": "rounded", "bullet_char": "-",
     },
     "lego_build": {
         "name": "LEGO Build",
@@ -201,7 +201,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "bold primary LEGO red yellow blue, glossy plastic surface, toy-bright palette",
         "preview_colors": ["#0a1a2e", "#ff2d2d", "#ffe600"],
         "title_color": "#ffe600", "accent_color": "#ff2d2d", "bullet_color": "white",
-        "font_style": "rounded", "bullet_char": "■",
+        "font_style": "rounded", "bullet_char": "-",
     },
     "lowpoly_geo": {
         "name": "Low-Poly Geo",
@@ -211,7 +211,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "geometric teal-blue and violet faceted palette, sharp contrast flat shading",
         "preview_colors": ["#0a1520", "#34d399", "#818cf8"],
         "title_color": "white", "accent_color": "#34d399", "bullet_color": "#818cf8",
-        "font_style": "bold_sans", "bullet_char": "›",
+        "font_style": "bold_sans", "bullet_char": "-",
     },
     # ── Traditional & Fine Art ────────────────────────────────────────────
     "watercolor_soft": {
@@ -222,7 +222,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "soft watercolor washes of warm cream, rose, and sage, gentle bleeding pigment edges",
         "preview_colors": ["#150d0a", "#c9a02a", "#e8c8b0"],
         "title_color": "#c9a02a", "accent_color": "#c9a02a", "bullet_color": "#475569",
-        "font_style": "serif", "bullet_char": "•",
+        "font_style": "serif", "bullet_char": "-",
     },
     "baroque_gold": {
         "name": "Baroque Gold",
@@ -232,7 +232,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "deep Baroque shadow, rich ochre and burnt sienna, ornate gold highlight, candlelit warmth",
         "preview_colors": ["#1a0a00", "#c9a02a", "#8b4513"],
         "title_color": "#fef3c7", "accent_color": "#c9a02a", "bullet_color": "#d6d3d1",
-        "font_style": "serif", "bullet_char": "◆",
+        "font_style": "serif", "bullet_char": "*",
     },
     "impressionist": {
         "name": "Impressionist",
@@ -242,7 +242,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "soft dappled light, impressionist warm gold and lavender, loose vibrant broken-colour palette",
         "preview_colors": ["#15100a", "#c9a02a", "#a78bca"],
         "title_color": "white", "accent_color": "#c9a02a", "bullet_color": "#e2e8f0",
-        "font_style": "serif", "bullet_char": "•",
+        "font_style": "serif", "bullet_char": "-",
     },
     "ukiyoe": {
         "name": "Ukiyo-e Print",
@@ -252,7 +252,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "traditional ukiyo-e indigo blue, vermillion red, and rice-paper cream, flat woodblock palette",
         "preview_colors": ["#0d1520", "#c9a02a", "#c0392b"],
         "title_color": "#f5e6c8", "accent_color": "#c0392b", "bullet_color": "#c9a02a",
-        "font_style": "serif", "bullet_char": "●",
+        "font_style": "serif", "bullet_char": "-",
     },
     "stained_glass": {
         "name": "Stained Glass",
@@ -262,7 +262,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "jewel-toned ruby, sapphire, and emerald stained glass, glowing backlit palette",
         "preview_colors": ["#0a0a1a", "#c9a02a", "#0d6b3a"],
         "title_color": "white", "accent_color": "#0d6b3a", "bullet_color": "#ecfdf5",
-        "font_style": "serif", "bullet_char": "◆",
+        "font_style": "serif", "bullet_char": "*",
     },
     "charcoal_sketch": {
         "name": "Charcoal Sketch",
@@ -272,7 +272,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "dark charcoal black on cream paper grain, smudged mid-grey, monochrome textured palette",
         "preview_colors": ["#0a0a0a", "#666666", "#d4c8b0"],
         "title_color": "#1f2937", "accent_color": "#4b5563", "bullet_color": "#64748b",
-        "font_style": "light", "bullet_char": "—",
+        "font_style": "light", "bullet_char": "-",
     },
     # ── Monochrome & Minimal ──────────────────────────────────────────────
     "minimal_clean": {
@@ -283,7 +283,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "pure black and white high contrast, clean grey neutral tones, stark editorial minimal",
         "preview_colors": ["#0a0a0a", "#666666", "#f0f0f0"],
         "title_color": "white", "accent_color": "white", "bullet_color": "#94a3b8",
-        "font_style": "light", "bullet_char": "–",
+        "font_style": "light", "bullet_char": "-",
     },
     "dark_noir": {
         "name": "Dark Noir",
@@ -293,7 +293,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "deep black with single cool moonlight beam, wet cobblestone reflections, dramatic monochrome",
         "preview_colors": ["#050505", "#1a1a2e", "#b0b0b0"],
         "title_color": "white", "accent_color": "#b0b0b0", "bullet_color": "#9ca3af",
-        "font_style": "mono", "bullet_char": "›",
+        "font_style": "mono", "bullet_char": "-",
     },
     "manga_ink": {
         "name": "Manga Ink",
@@ -303,7 +303,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "stark black ink on white, screentone grey halftone, clean high-contrast manga palette",
         "preview_colors": ["#0a0a0a", "#555555", "#e8e8e8"],
         "title_color": "#111827", "accent_color": "#1f2937", "bullet_color": "#4b5563",
-        "font_style": "light", "bullet_char": "•",
+        "font_style": "light", "bullet_char": "-",
     },
     "brutalist": {
         "name": "Brutalist",
@@ -313,7 +313,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "raw concrete grey, harsh geometric shadow, industrial monochrome palette",
         "preview_colors": ["#111111", "#555555", "#cccccc"],
         "title_color": "white", "accent_color": "#cccccc", "bullet_color": "#94a3b8",
-        "font_style": "light", "bullet_char": "■",
+        "font_style": "light", "bullet_char": "*",
     },
     # ── Genre & Retro ─────────────────────────────────────────────────────
     "golden_vintage": {
@@ -324,7 +324,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "warm sepia amber and cream, aged golden patina, bold saturated retro inks",
         "preview_colors": ["#1a0a00", "#c9a02a", "#f5e6c8"],
         "title_color": "#f5e6c8", "accent_color": "#c9a02a", "bullet_color": "#e2bc52",
-        "font_style": "serif", "bullet_char": "◆",
+        "font_style": "serif", "bullet_char": "*",
     },
     "industrial_steam": {
         "name": "Industrial Steam",
@@ -334,7 +334,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "warm brass copper and aged leather tones, Victorian sepia, steam-haze atmosphere",
         "preview_colors": ["#1a0e00", "#c9a02a", "#7a4a1a"],
         "title_color": "#fef3c7", "accent_color": "#c9a02a", "bullet_color": "#d6d3d1",
-        "font_style": "serif", "bullet_char": "•",
+        "font_style": "serif", "bullet_char": "-",
     },
     "dieselpunk": {
         "name": "Dieselpunk",
@@ -344,7 +344,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "muted olive-green and rust-brown steel, WWI-era industrial tones, smoke-grey palette",
         "preview_colors": ["#0f0e0a", "#c9a02a", "#5a5040"],
         "title_color": "#d1d5db", "accent_color": "#c9a02a", "bullet_color": "#9ca3af",
-        "font_style": "serif", "bullet_char": "▸",
+        "font_style": "serif", "bullet_char": "-",
     },
     # ── Dark & Atmospheric ────────────────────────────────────────────────
     "fantasy_epic": {
@@ -355,7 +355,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "deep azure sky, golden magical sunlight rays, rich teal and sapphire atmosphere",
         "preview_colors": ["#0a1a2e", "#4a8fd4", "#d4a820"],
         "title_color": "white", "accent_color": "#d4a820", "bullet_color": "#bfdbfe",
-        "font_style": "bold_sans", "bullet_char": "•",
+        "font_style": "bold_sans", "bullet_char": "*",
     },
     "gothic_dark": {
         "name": "Gothic Dark",
@@ -365,7 +365,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "deep desaturated purple and slate, cold candlelit amber, gothic shadow palette",
         "preview_colors": ["#080510", "#00ffcc", "#4a3060"],
         "title_color": "#a78bca", "accent_color": "#00ffcc", "bullet_color": "#d1d5db",
-        "font_style": "mono", "bullet_char": "›",
+        "font_style": "mono", "bullet_char": "-",
     },
     # ── Japanese Animation ────────────────────────────────────────────────
     "anime_vivid": {
@@ -376,7 +376,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "vibrant anime sky-blue and cherry-blossom pink, rich colour gradient, dynamic highlights",
         "preview_colors": ["#0a0820", "#ff6eb4", "#38bdf8"],
         "title_color": "white", "accent_color": "#ff6eb4", "bullet_color": "#38bdf8",
-        "font_style": "rounded", "bullet_char": "•",
+        "font_style": "rounded", "bullet_char": "-",
     },
     # ── Professional Illustration ─────────────────────────────────────────
     "concept_art": {
@@ -387,7 +387,7 @@ DESIGN_THEMES: dict = {
         "palette_hint": "dramatic cinematic mood palette, deep teal and gold matte-painting tones, layered atmospheric depth",
         "preview_colors": ["#0a1520", "#38bdf8", "#c8922a"],
         "title_color": "white", "accent_color": "#c8922a", "bullet_color": "#cbd5e1",
-        "font_style": "bold_sans", "bullet_char": "◆",
+        "font_style": "bold_sans", "bullet_char": "*",
     },
 }
 
@@ -433,13 +433,18 @@ def _srt_time_to_sec(t: str) -> float:
 
 
 def _extract_json(raw: str) -> str:
-    """Strip markdown code fences that some LLMs wrap around JSON."""
+    """Strip markdown code fences and fix common LLM JSON errors like unescaped backslashes."""
     raw = raw.strip()
     # Remove ```json ... ``` or ``` ... ```
     m = re.search(r"```(?:json)?\s*([\s\S]+?)```", raw)
     if m:
-        return m.group(1).strip()
-    return raw
+        raw = m.group(1).strip()
+    
+    # Simple heuristic to fix unescaped backslashes in JSON strings.
+    # We replace \ with \\ unless it's followed by a valid JSON escape character.
+    # Note: this is a best-effort fix for models that fail to escape correctly.
+    fixed = re.sub(r'\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})', r'\\\\', raw)
+    return fixed
 
 
 # Patterns that strip text/typography references (Flux-Klein cannot render text)
@@ -665,7 +670,8 @@ class OpenAIProvider(AIProvider):
                     temperature=0.65,
                 )
                 raw = resp.choices[0].message.content or "{}"
-                data = json.loads(_extract_json(raw))
+                # Use strict=False to allow control characters (like newlines) in strings
+                data = json.loads(_extract_json(raw), strict=False)
                 return data.get("scenes") or []
 
             scenes = _retry(_call, f"Script section {i + 1}")
@@ -684,7 +690,8 @@ class OpenAIProvider(AIProvider):
             write_status(project_id, {"state": "storyboard", "progress": 50,
                                       "message": "Finalising storyboard…"})
         try:
-            raw = json.loads(script)
+            # Use strict=False to be more tolerant of control characters
+            raw = json.loads(script, strict=False)
         except json.JSONDecodeError as exc:
             raise PipelineError(f"Script JSON parse error: {exc}")
 

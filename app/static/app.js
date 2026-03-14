@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Pipeline stages initialisation ──────────────────────────────────────
   const STAGES = [
-    { key: 'asr',        label: 'ASR Transcription',  icon: 'waveform',       color: 'text-sky-400'    },
+    { key: 'asr',        label: 'ASR Transcription',  icon: 'activity',       color: 'text-sky-400'    },
     { key: 'script',     label: 'Scene Planning',      icon: 'layout-list',    color: 'text-indigo-400' },
     { key: 'storyboard', label: 'Storyboard',          icon: 'film',           color: 'text-violet-400' },
     { key: 'images',     label: 'Image Generation',    icon: 'image',          color: 'text-rose-400'   },
