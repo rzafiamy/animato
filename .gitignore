@@ -1,0 +1,6 @@
+.pyenv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+app/data/projects/

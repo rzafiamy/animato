@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Animato Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ink: #f9fafb;
+        --ink-muted: #cbd5f5;
+        --bg-1: #0f172a;
+        --bg-2: #1e1b4b;
+        --accent: #60a5fa;
+        --accent-2: #22d3ee;
+      }
+      body {
+        font-family: "Space Grotesk", sans-serif;
+        color: var(--ink);
+        background: radial-gradient(circle at top left, #1e293b 0%, transparent 45%),
+          radial-gradient(circle at 40% 20%, #1e1b4b 0%, transparent 45%),
+          linear-gradient(120deg, var(--bg-1), var(--bg-2));
+        min-height: 100vh;
+      }
+      .glass {
+        background: rgba(15, 23, 42, 0.65);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        backdrop-filter: blur(12px);
+      }
+      .scanline {
+        background-image: linear-gradient(
+          rgba(255, 255, 255, 0.05) 1px,
+          transparent 1px
+        );
+        background-size: 100% 6px;
+      }
+      .pulse-dot {
+        box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.8);
+        animation: pulse 2s infinite;
+      }
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.7);
+        }
+        70% {
+          box-shadow: 0 0 0 12px rgba(34, 211, 238, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(34, 211, 238, 0);
+        }
+      }
+    </style>
+  </head>
+  <body class="scanline">
+    <div class="max-w-6xl mx-auto px-6 py-10">
+      <header class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p class="text-sm uppercase tracking-[0.3em] text-cyan-200">Animato Studio</p>
+          <h1 class="text-4xl md:text-5xl font-semibold leading-tight">
+            Turn audio into a cinematic podcast video in minutes.
+          </h1>
+          <p class="text-lg text-slate-200 max-w-2xl mt-4">
+            Upload your audio, let the AI build a script, storyboard, and visuals, then render a
+            full HD video with motion slides, text overlays, and rich imagery.
+          </p>
+        </div>
+        <div class="glass rounded-2xl p-6 w-full md:w-80">
+          <div class="flex items-center gap-3">
+            <div class="h-3 w-3 rounded-full bg-cyan-300 pulse-dot"></div>
+            <p class="font-medium">Pipeline status</p>
+          </div>
+          <p id="statusText" class="text-slate-200 mt-2">Waiting for upload.</p>
+          <div class="mt-4 h-2 bg-slate-800 rounded-full overflow-hidden">
+            <div
+              id="progressBar"
+              class="h-full bg-gradient-to-r from-sky-400 to-cyan-300"
+              style="width: 0%"
+            ></div>
+          </div>
+        </div>
+      </header>
+
+      <section class="grid md:grid-cols-3 gap-6 mt-10">
+        <div class="glass rounded-2xl p-6">
+          <p class="text-sm text-cyan-200 uppercase tracking-wide">1. Upload</p>
+          <h2 class="text-xl font-semibold mt-2">Bring your voice</h2>
+          <p class="text-slate-200 mt-2">
+            Drop an audio file. We analyze and transcribe it into a structured script.
+          </p>
+        </div>
+        <div class="glass rounded-2xl p-6">
+          <p class="text-sm text-cyan-200 uppercase tracking-wide">2. Generate</p>
+          <h2 class="text-xl font-semibold mt-2">AI storyboard</h2>
+          <p class="text-slate-200 mt-2">
+            Slides, motion beats, and visual prompts are crafted to keep the audience engaged.
+          </p>
+        </div>
+        <div class="glass rounded-2xl p-6">
+          <p class="text-sm text-cyan-200 uppercase tracking-wide">3. Render</p>
+          <h2 class="text-xl font-semibold mt-2">Full HD export</h2>
+          <p class="text-slate-200 mt-2">
+            Your final video merges audio, text, and visuals into a shareable podcast format.
+          </p>
+        </div>
+      </section>
+
+      <section class="glass rounded-3xl p-8 mt-10">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div>
+            <h3 class="text-2xl font-semibold">Create a new video</h3>
+            <p class="text-slate-200 mt-2">
+              Supported formats: MP3, WAV, M4A. Keep files under 200MB by default.
+            </p>
+          </div>
+          <div class="flex gap-3">
+            <label class="px-5 py-3 rounded-xl bg-cyan-500 text-slate-900 font-semibold cursor-pointer">
+              <input id="audioInput" type="file" class="hidden" accept="audio/*" />
+              Select audio
+            </label>
+            <button
+              id="generateBtn"
+              class="px-5 py-3 rounded-xl border border-cyan-400 text-cyan-100 font-semibold"
+            >
+              Generate video
+            </button>
+          </div>
+        </div>
+        <div class="mt-6 flex flex-col gap-3">
+          <p class="text-sm text-slate-300">Selected file:</p>
+          <p id="fileName" class="text-slate-100">None</p>
+        </div>
+      </section>
+
+      <section class="grid md:grid-cols-2 gap-6 mt-10">
+        <div class="glass rounded-3xl p-8">
+          <h3 class="text-2xl font-semibold">Live log</h3>
+          <div id="log" class="mt-4 space-y-2 text-sm text-slate-200"></div>
+        </div>
+        <div class="glass rounded-3xl p-8">
+          <h3 class="text-2xl font-semibold">Preview</h3>
+          <p class="text-slate-200 mt-2">Your generated video will appear here.</p>
+          <video id="videoPlayer" class="mt-4 w-full rounded-2xl" controls></video>
+        </div>
+      </section>
+    </div>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
