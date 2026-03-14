@@ -17,8 +17,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Optional
 
-import httpx
-
 from .config import MAX_RETRIES, PROVIDER
 
 
@@ -300,41 +298,41 @@ class OpenAIProvider(AIProvider):
     # ── Image generation ──────────────────────────────────────────────────────
 
     def generate_image(self, prompt: str, output_path: Path) -> str:
-        """Download and save image. Returns actual file extension used."""
+        """Generate and save image using b64_json response format.
+        Returns actual file extension used ('png' or 'jpg')."""
+        import base64
+
         def _call():
             resp = self.client.images.generate(
                 model=self.dalle_model,
                 prompt=prompt[:950],  # DALL-E limit
                 size="1792x1024",
                 quality=self.dalle_quality,  # type: ignore[arg-type]
+                response_format="b64_json",
                 n=1,
             )
-            url = resp.data[0].url
-            if not url:
-                raise PipelineError("DALL-E returned empty URL")
-
-            with httpx.Client(timeout=90.0) as client:
-                r = client.get(url)
-                r.raise_for_status()
-                return r.content
+            b64_data = resp.data[0].b64_json
+            if not b64_data:
+                raise PipelineError("Image API returned empty b64_json data")
+            return base64.b64decode(b64_data)
 
         raw = _retry(_call, f"Image generation '{prompt[:40]}…'")
 
-        # Detect format
+        # Detect format from magic bytes
         if raw[:8] == b"\x89PNG\r\n\x1a\n":
             ext = "png"
         elif raw[:3] == b"\xff\xd8\xff":
             ext = "jpg"
         else:
             raise PipelineError(
-                f"DALL-E returned unexpected data (starts: {raw[:16]!r})"
+                f"Image API returned unexpected data format (starts: {raw[:16]!r})"
             )
 
         # Save with correct extension
         actual_path = output_path.with_suffix(f".{ext}")
         actual_path.write_bytes(raw)
 
-        # If caller expected a different extension name, also write there
+        # Also write to the originally requested path if different
         if actual_path != output_path:
             output_path.write_bytes(raw)
 

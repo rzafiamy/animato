@@ -539,22 +539,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Projects view ─────────────────────────────────────────────────────────
   async function loadProjects() {
-    const grid  = get('projectsGrid');
-    const empty = get('projectsEmpty');
+    const loading = get('projectsLoading');
+    const grid    = get('projectsGrid');
+    const empty   = get('projectsEmpty');
+    const errEl   = get('projectsError');
+
     if (!grid) return;
+
+    // Show loading skeleton, hide everything else
+    if (loading) loading.classList.remove('hidden');
+    grid.classList.add('hidden');
     grid.innerHTML = '';
+    if (empty)  empty.classList.add('hidden');
+    if (errEl)  errEl.classList.add('hidden');
 
     try {
-      const r        = await fetch('/api/projects');
+      const r = await fetch('/api/projects');
+      if (!r.ok) throw new Error(`Server error ${r.status}`);
       const projects = await r.json();
 
-      if (!projects.length) {
-        grid.classList.add('hidden');
+      // Hide loading skeleton now that we have data
+      if (loading) loading.classList.add('hidden');
+
+      if (!Array.isArray(projects) || !projects.length) {
         if (empty) empty.classList.remove('hidden');
         return;
       }
+
       grid.classList.remove('hidden');
-      if (empty) empty.classList.add('hidden');
 
       projects.forEach(p => {
         const state    = p.status?.state    || 'unknown';
@@ -610,7 +622,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
       lucide.createIcons();
     } catch (err) {
-      grid.innerHTML = `<p class="text-rose-400 text-sm col-span-3">Failed to load projects: ${escHtml(err.message)}</p>`;
+      if (loading) loading.classList.add('hidden');
+      if (errEl) {
+        errEl.textContent = `Failed to load projects: ${err.message}`;
+        errEl.classList.remove('hidden');
+      }
     }
   }
   window.loadProjects = loadProjects;

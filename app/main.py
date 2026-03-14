@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import aiofiles
-from fastapi import BackgroundTasks, FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -111,7 +111,7 @@ async def delete_project(project_id: str) -> Dict[str, str]:
 # ──────────────────────────────────────────────────────────────────────────────
 
 @app.post("/api/projects/{project_id}/upload")
-async def upload_audio(project_id: str, file: UploadFile = File(...)) -> Dict[str, str]:
+async def upload_audio(project_id: str, file: UploadFile = File(...)) -> Dict[str, Any]:
     if not project_dir(project_id).exists():
         raise HTTPException(404, "Project not found")
 
@@ -127,8 +127,8 @@ async def upload_audio(project_id: str, file: UploadFile = File(...)) -> Dict[st
 
     safe_name = Path(file.filename or "audio.mp3").name
     audio_path = paths["audio"] / safe_name
-    async with aiofiles.open(audio_path, "wb") as f:
-        await f.write(data)
+    async with aiofiles.open(audio_path, "wb") as fp:  # fp avoids shadowing `file` param
+        await fp.write(data)
 
     write_status(project_id, {"state": "uploaded", "progress": 5,
                               "message": f"Audio uploaded: {safe_name}"})
@@ -146,7 +146,6 @@ _active_pipelines: Dict[str, threading.Thread] = {}
 @app.post("/api/projects/{project_id}/generate")
 async def generate(
     project_id: str,
-    background: BackgroundTasks,
     reset: bool = False,
 ) -> Dict[str, str]:
     if not project_dir(project_id).exists():
@@ -158,21 +157,30 @@ async def generate(
         raise HTTPException(409, "Pipeline already running for this project")
 
     write_status(project_id, {"state": "queued", "progress": 0, "message": "Queued for processing"})
-    background.add_task(_run_pipeline_bg, project_id, reset)
+
+    # Use an explicit daemon thread — BackgroundTasks can block the event loop
+    # with long-running sync functions (subprocess, openai SDK calls, etc.)
+    t = threading.Thread(
+        target=_run_pipeline_bg,
+        args=(project_id, reset),
+        daemon=True,
+        name=f"pipeline-{project_id[:8]}",
+    )
+    t.start()
     return {"status": "started"}
 
 
 def _run_pipeline_bg(project_id: str, reset: bool) -> None:
-    t = threading.current_thread()
-    _active_pipelines[project_id] = t
+    _active_pipelines[project_id] = threading.current_thread()
     try:
         run_project(project_id, reset=reset)
     except PipelineError as exc:
         write_status(project_id, {"state": "failed", "progress": 0,
                                   "message": f"Pipeline error: {exc}"})
     except Exception as exc:
+        import traceback
         write_status(project_id, {"state": "failed", "progress": 0,
-                                  "message": f"Unexpected error: {exc}"})
+                                  "message": f"Unexpected error: {exc}\n{traceback.format_exc()[-800:]}"})
     finally:
         _active_pipelines.pop(project_id, None)
 
@@ -276,7 +284,6 @@ async def rerender_slide(
     project_id: str,
     slide_index: int,
     regen_image: bool = False,
-    background: BackgroundTasks = None,
 ) -> Dict[str, str]:
     """Re-render a specific slide (optionally regenerate its image)."""
     sb_path = project_dir(project_id) / "output" / "storyboard.json"
@@ -288,8 +295,13 @@ async def rerender_slide(
         raise HTTPException(400, "Slide index out of range")
 
     paths = ensure_project_dirs(project_id)
-    background.add_task(_rerender_slide_bg, project_id, slide_index, slides, paths, regen_image)
-    return {"status": "started", "slide": slide_index}
+    t = threading.Thread(
+        target=_rerender_slide_bg,
+        args=(project_id, slide_index, slides, paths, regen_image),
+        daemon=True,
+    )
+    t.start()
+    return {"status": "started", "slide": str(slide_index)}
 
 
 def _rerender_slide_bg(

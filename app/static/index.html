@@ -465,12 +465,18 @@
     </div>
   </header>
   <div class="max-w-5xl mx-auto px-6 py-10">
-    <div id="projectsGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+    <!-- Loading skeletons (shown while fetching) -->
+    <div id="projectsLoading" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
       <div class="shimmer rounded-3xl h-48 border border-white/5"></div>
       <div class="shimmer rounded-3xl h-48 border border-white/5"></div>
       <div class="shimmer rounded-3xl h-48 border border-white/5"></div>
     </div>
+    <!-- Populated project cards -->
+    <div id="projectsGrid" class="hidden grid sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+    <!-- Empty state -->
     <p id="projectsEmpty" class="hidden text-center text-slate-600 py-20">No projects yet. <button onclick="showView('studio')" class="text-sky-400 hover:underline">Create one →</button></p>
+    <!-- Error state -->
+    <p id="projectsError" class="hidden text-center text-rose-400 py-20 text-sm font-mono"></p>
   </div>
 </div>
 
