@@ -1,10 +1,15 @@
 """
 pipeline.py – Video rendering pipeline with audio synchronisation.
 
-Key improvements:
+Key features:
   - Audio-driven slide durations: actual audio length is measured, then slide
     durations are proportionally scaled so total == audio length.
   - Ken-Burns zoom animation on each slide image (zoompan filter).
+  - 8 layout types: hero, lower_third, cinematic, card, top_banner,
+    split_right, quote, minimal_bottom.
+  - 5 design styles: modern, vintage, kawaii, neon, minimal.
+  - Text animations: fade-in + slide-up per layout.
+  - MAX_IMAGES limit: only first N slides get unique AI images; extras reuse cycling.
   - Multi-line bullet text rendered per-line to avoid ffmpeg wrap issues.
   - Concurrent image generation (configurable via CONCURRENT_IMAGES).
   - Robust ffmpeg filter escaping.
@@ -19,7 +24,7 @@ import shutil
 import subprocess
 import threading
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from .ai_providers import PipelineError, Slide, get_provider
 from .config import (
@@ -28,12 +33,85 @@ from .config import (
     FPS,
     FONT_BULLET_SIZE,
     FONT_TITLE_SIZE,
+    MAX_IMAGES,
     SLIDE_PADDING,
     VIDEO_BITRATE,
     VIDEO_HEIGHT,
     VIDEO_WIDTH,
 )
 from .storage import ensure_project_dirs, write_status
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Design styles
+# ──────────────────────────────────────────────────────────────────────────────
+
+DESIGN_STYLES: Dict[str, dict] = {
+    "modern": {
+        "title_color": "white",
+        "bullet_color": "white",
+        "accent": "0x38bdf8",
+        "title_shadow": "black@0.9",
+        "bullet_shadow": "black@0.8",
+        "sep_color": "0x38bdf8@0.9",
+        "sep_h": 3,
+        "bullet_char": "• ",
+        "title_scale": 1.0,
+        "overlay_top": "black@0.55",
+        "overlay_bot": "black@0.38",
+    },
+    "vintage": {
+        "title_color": "0xf5e6c8",
+        "bullet_color": "0xe8d5a3",
+        "accent": "0xc9a02a",
+        "title_shadow": "0x3d1500@0.9",
+        "bullet_shadow": "0x3d1500@0.8",
+        "sep_color": "0xc9a02a@0.85",
+        "sep_h": 2,
+        "bullet_char": "◆ ",
+        "title_scale": 0.92,
+        "overlay_top": "0x1a0800@0.68",
+        "overlay_bot": "0x1a0800@0.50",
+    },
+    "kawaii": {
+        "title_color": "0xff6eb4",
+        "bullet_color": "0xffffff",
+        "accent": "0xffb6c1",
+        "title_shadow": "0x800040@0.8",
+        "bullet_shadow": "0x400020@0.7",
+        "sep_color": "0xffb6c1@0.9",
+        "sep_h": 4,
+        "bullet_char": "♥ ",
+        "title_scale": 1.05,
+        "overlay_top": "0x1a0030@0.58",
+        "overlay_bot": "0x0a0020@0.42",
+    },
+    "neon": {
+        "title_color": "0x00ffcc",
+        "bullet_color": "0xff00cc",
+        "accent": "0x00ffcc",
+        "title_shadow": "0x00ffcc@0.55",
+        "bullet_shadow": "0xff00cc@0.45",
+        "sep_color": "0x00ffcc@0.9",
+        "sep_h": 2,
+        "bullet_char": "▸ ",
+        "title_scale": 1.0,
+        "overlay_top": "black@0.80",
+        "overlay_bot": "black@0.65",
+    },
+    "minimal": {
+        "title_color": "white",
+        "bullet_color": "0xbbbbbb",
+        "accent": "white",
+        "title_shadow": "black@0.4",
+        "bullet_shadow": "black@0.35",
+        "sep_color": "white@0.5",
+        "sep_h": 1,
+        "bullet_char": "– ",
+        "title_scale": 0.85,
+        "overlay_top": "black@0.28",
+        "overlay_bot": "black@0.20",
+    },
+}
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Helpers
@@ -73,7 +151,6 @@ def _run_ffmpeg(args: List[str], cwd: Optional[Path] = None) -> None:
         check=False,
     )
     if proc.returncode != 0:
-        # Truncate long outputs
         raise PipelineError(proc.stdout[-3000:] if proc.stdout else "ffmpeg error")
 
 
@@ -105,7 +182,7 @@ def _escape_drawtext(value: str) -> str:
     return (
         value
         .replace("\\", "\\\\")
-        .replace("'", "\u2019")   # replace apostrophe with right single quotation mark (safer than escaping)
+        .replace("'", "\u2019")   # right single quotation mark (safer than escaping)
         .replace(":", "\\:")
         .replace("[", "\\[")
         .replace("]", "\\]")
@@ -116,7 +193,256 @@ def _escape_drawtext(value: str) -> str:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Ken-Burns animated slide rendering
+# Animation expression helpers
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _fade_in(start: float, dur: float = 0.8) -> str:
+    """Alpha fade-in: invisible until `start` s, then fades over `dur` seconds."""
+    end = round(start + dur, 3)
+    return f"if(lt(t\\,{start})\\,0\\,if(lt(t\\,{end})\\,(t-{start})/{dur}\\,1))"
+
+
+def _slide_up_y(base_y: int, start: float = 0.2, dur: float = 0.7, px: int = 20) -> str:
+    """Y expression: element slides up by `px` pixels over `dur` seconds starting at `start`."""
+    end = round(start + dur, 3)
+    return (
+        f"if(lt(t\\,{start})\\,{base_y + px}\\,"
+        f"if(lt(t\\,{end})\\,{base_y}+{px}*(1-(t-{start})/{dur})\\,{base_y}))"
+    )
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Ken-Burns animation
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _ken_burns_exprs(slide_idx: int) -> Tuple[str, str, str]:
+    """Return (zoom_expr, x_expr, y_expr) for Ken-Burns zoompan filter."""
+    pattern = slide_idx % 6
+    if pattern == 0:
+        return ("min(1+0.0004*on,1.12)", "(iw-iw/zoom)/2", "(ih-ih/zoom)/2")   # zoom in, centre
+    elif pattern == 1:
+        return ("max(1.12-0.0004*on,1.0)", "(iw-iw/zoom)/2", "(ih-ih/zoom)/2") # zoom out, centre
+    elif pattern == 2:
+        return ("min(1+0.0003*on,1.10)", "0", "(ih-ih/zoom)/2")                 # pan right
+    elif pattern == 3:
+        return ("min(1+0.0003*on,1.10)", "(iw-iw/zoom)", "(ih-ih/zoom)/2")      # pan left
+    elif pattern == 4:
+        return ("min(1+0.0003*on,1.08)", "(iw-iw/zoom)/2", "0")                 # pan down
+    else:
+        return ("min(1+0.0003*on,1.08)", "(iw-iw/zoom)/2", "(ih-ih/zoom)")      # pan up
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Layout filter builders
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _build_visual_filters(
+    slide: Slide,
+    style_cfg: dict,
+    layout: str,
+    bold_font: Optional[str],
+    pad_x: int,
+    pad_y: int,
+) -> str:
+    """Build the FFmpeg filter chain segment (after zoompan) for all visual overlays."""
+    W, H = VIDEO_WIDTH, VIDEO_HEIGHT
+    fs = style_cfg
+    font_spec = f"fontfile='{bold_font}':" if bold_font else ""
+    title_size = int(FONT_TITLE_SIZE * fs.get("title_scale", 1.0))
+    bul_size = FONT_BULLET_SIZE
+    line_h = bul_size + 14
+
+    title_esc = _escape_drawtext(slide.title)
+    bullets = slide.bullets[:5]
+
+    parts: List[str] = []
+
+    def box(x, y, w, h, color: str) -> None:
+        parts.append(f"drawbox=x={x}:y={y}:width={w}:height={h}:color={color}:t=fill")
+
+    def sep(x, y, w, h: Optional[int] = None) -> None:
+        sh = h if h is not None else fs["sep_h"]
+        parts.append(
+            f"drawbox=x={x}:y={y}:width={w}:height={sh}:color={fs['sep_color']}:t=fill"
+        )
+
+    def title(x_str, y_val: int, size: int, alpha: Optional[str] = None, y_expr: Optional[str] = None) -> None:
+        y_str = y_expr if y_expr else str(y_val)
+        f = (
+            f"drawtext={font_spec}fontcolor={fs['title_color']}:fontsize={size}:"
+            f"x='{x_str}':y='{y_str}':"
+            f"text='{title_esc}':"
+            f"shadowcolor={fs['title_shadow']}:shadowx=3:shadowy=3:box=0"
+        )
+        if alpha:
+            f += f":alpha='{alpha}'"
+        parts.append(f)
+
+    def bullet(txt: str, x_str, y_val: int, size: int = 0, alpha: Optional[str] = None) -> None:
+        escaped = _escape_drawtext(f"{fs['bullet_char']}{txt}")
+        bsz = size if size else bul_size
+        f = (
+            f"drawtext={font_spec}fontcolor={fs['bullet_color']}:fontsize={bsz}:"
+            f"x='{x_str}':y='{y_val}':"
+            f"text='{escaped}':"
+            f"shadowcolor={fs['bullet_shadow']}:shadowx=2:shadowy=2:box=0"
+        )
+        if alpha:
+            f += f":alpha='{alpha}'"
+        parts.append(f)
+
+    # ── Layout implementations ─────────────────────────────────────────────────
+
+    if layout == "hero":
+        # Classic: title top-left with separator, bullets centre-left
+        box(0, 0, W, int(H * 0.45), fs["overlay_top"])
+        box(0, int(H * 0.55), W, H - int(H * 0.55), fs["overlay_bot"])
+        sep_y = pad_y + title_size + 16
+        sep(pad_x, sep_y, W - pad_x * 2)
+        title(str(pad_x), pad_y, title_size,
+              alpha=_fade_in(0.2, 0.8),
+              y_expr=_slide_up_y(pad_y, 0.2, 0.8, 18))
+        bul_y = int(H * 0.53)
+        for i, b in enumerate(bullets):
+            bullet(b, str(pad_x), bul_y + i * line_h,
+                   alpha=_fade_in(0.7 + i * 0.25, 0.6))
+
+    elif layout == "lower_third":
+        # News broadcast: strong bottom band, compact text at bottom
+        grad_y = int(H * 0.52)
+        box(0, grad_y, W, H - grad_y, "black@0.82")
+        title_y = int(H * 0.61)
+        # Short accent bar above title
+        sep(pad_x, title_y - 12, 80, fs["sep_h"] + 2)
+        title(str(pad_x), title_y, title_size,
+              alpha=_fade_in(0.2, 0.7),
+              y_expr=_slide_up_y(title_y, 0.2, 0.7, 14))
+        bul_y = int(H * 0.74)
+        for i, b in enumerate(bullets[:3]):
+            bullet(b, str(pad_x), bul_y + i * line_h,
+                   alpha=_fade_in(0.55 + i * 0.2, 0.55))
+
+    elif layout == "cinematic":
+        # Epic: vignette edges, large centered title, minimal text
+        box(0, 0, W, int(H * 0.18), "black@0.78")
+        box(0, int(H * 0.82), W, int(H * 0.18), "black@0.78")
+        big_size = int(title_size * 1.28)
+        title_y = int(H * 0.37)
+        title("(W-tw)/2", title_y, big_size,
+              alpha=_fade_in(0.4, 1.1),
+              y_expr=_slide_up_y(title_y, 0.4, 1.0, 28))
+        # First bullet as subtitle (centred, smaller)
+        if bullets:
+            sub_esc = _escape_drawtext(bullets[0])
+            sub_y = title_y + big_size + 28
+            parts.append(
+                f"drawtext={font_spec}fontcolor={fs['bullet_color']}:fontsize={int(bul_size * 1.05)}:"
+                f"x='(W-tw)/2':y='{sub_y}':"
+                f"text='{sub_esc}':"
+                f"shadowcolor={fs['bullet_shadow']}:shadowx=2:shadowy=2:box=0"
+                f":alpha='{_fade_in(1.2, 0.9)}'"
+            )
+
+    elif layout == "card":
+        # Frosted card: dark box in centre, text inside
+        box(0, 0, W, H, "black@0.22")
+        card_x = pad_x - 24
+        card_y = int(H * 0.19)
+        card_w = W - (pad_x - 24) * 2
+        bul_count = min(len(bullets), 5)
+        card_h = max(title_size + 30 + bul_count * line_h + 40, int(H * 0.48))
+        box(card_x, card_y, card_w, card_h, "black@0.72")
+        inner_y = card_y + 28
+        title(str(pad_x), inner_y, title_size,
+              alpha=_fade_in(0.3, 0.8),
+              y_expr=_slide_up_y(inner_y, 0.3, 0.8, 12))
+        sep(pad_x, inner_y + title_size + 10, card_w - 48)
+        bul_base = inner_y + title_size + 28
+        for i, b in enumerate(bullets[:5]):
+            bullet(b, str(pad_x), bul_base + i * line_h,
+                   alpha=_fade_in(0.65 + i * 0.2, 0.55))
+
+    elif layout == "top_banner":
+        # Dark top band, title and bullets in upper third
+        box(0, 0, W, int(H * 0.40), "black@0.80")
+        title(str(pad_x), pad_y, title_size,
+              alpha=_fade_in(0.2, 0.7),
+              y_expr=_slide_up_y(pad_y, 0.2, 0.7, 14))
+        sep(pad_x, pad_y + title_size + 8, W - pad_x * 2)
+        bul_y = pad_y + title_size + 28
+        for i, b in enumerate(bullets[:4]):
+            bullet(b, str(pad_x), bul_y + i * line_h,
+                   alpha=_fade_in(0.55 + i * 0.2, 0.55))
+
+    elif layout == "split_right":
+        # Dark right half, right-aligned text
+        box(int(W * 0.50), 0, int(W * 0.50), H, "black@0.78")
+        title_y = int(H * 0.20)
+        title(f"W-tw-{pad_x}", title_y, title_size,
+              alpha=_fade_in(0.3, 0.8))
+        sep_x = int(W * 0.52)
+        sep(sep_x, title_y + title_size + 10, W - sep_x - pad_x)
+        bul_y = title_y + title_size + 30
+        for i, b in enumerate(bullets[:4]):
+            escaped = _escape_drawtext(f"{fs['bullet_char']}{b}")
+            f = (
+                f"drawtext={font_spec}fontcolor={fs['bullet_color']}:fontsize={bul_size}:"
+                f"x='W-tw-{pad_x}':y='{bul_y + i * line_h}':"
+                f"text='{escaped}':"
+                f"shadowcolor={fs['bullet_shadow']}:shadowx=2:shadowy=2:box=0"
+                f":alpha='{_fade_in(0.7 + i * 0.22, 0.55)}'"
+            )
+            parts.append(f)
+
+    elif layout == "quote":
+        # Full-screen overlay, single huge centred title + thin decorative lines
+        box(0, 0, W, H, "black@0.42")
+        big_size = int(title_size * 1.38)
+        title_y = int(H * 0.36)
+        # Decorative horizontal rules
+        sep(pad_x, int(H * 0.33), W - pad_x * 2, 1)
+        title("(W-tw)/2", title_y, big_size,
+              alpha=_fade_in(0.5, 1.2),
+              y_expr=_slide_up_y(title_y, 0.5, 1.0, 32))
+        sep(pad_x, title_y + big_size + 30, W - pad_x * 2, 1)
+        # First bullet as attribution
+        if bullets:
+            attr_esc = _escape_drawtext(bullets[0])
+            attr_y = title_y + big_size + 46
+            parts.append(
+                f"drawtext={font_spec}fontcolor={fs['bullet_color']}:fontsize={int(bul_size * 0.82)}:"
+                f"x='(W-tw)/2':y='{attr_y}':"
+                f"text='{attr_esc}':"
+                f"shadowcolor={fs['bullet_shadow']}:shadowx=1:shadowy=1:box=0"
+                f":alpha='{_fade_in(1.5, 0.7)}'"
+            )
+
+    elif layout == "minimal_bottom":
+        # Breathe: thin bottom gradient, small title, image dominates
+        bot_y = int(H * 0.77)
+        box(0, bot_y, W, H - bot_y, "black@0.68")
+        sep(pad_x, bot_y + 8, 55)  # short accent tick
+        sm_title = int(title_size * 0.78)
+        title_y = int(H * 0.81)
+        title(str(pad_x), title_y, sm_title,
+              alpha=_fade_in(0.3, 0.8),
+              y_expr=_slide_up_y(title_y, 0.3, 0.8, 10))
+        # 1–2 bullets max, compact
+        sm_bul = int(bul_size * 0.72)
+        for i, b in enumerate(bullets[:2]):
+            bullet(b, str(pad_x), title_y + sm_title + 8 + i * (sm_bul + 8),
+                   size=sm_bul,
+                   alpha=_fade_in(0.65 + i * 0.3, 0.55))
+
+    else:
+        # Unknown layout → fall back to hero
+        return _build_visual_filters(slide, style_cfg, "hero", bold_font, pad_x, pad_y)
+
+    return ",".join(parts)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Slide video rendering
 # ──────────────────────────────────────────────────────────────────────────────
 
 def _render_slide_video(
@@ -125,104 +451,44 @@ def _render_slide_video(
     out_path: Path,
     slide_idx: int,
 ) -> None:
-    """Render a single slide to MP4 with animated Ken-Burns + text overlay."""
+    """Render a single slide to MP4 with Ken-Burns animation, layout, style, and text animations."""
     ffmpeg = _ffmpeg_path()
     duration = max(4.0, slide.duration)
     total_frames = int(math.ceil(duration * FPS))
 
-    # Ken-Burns direction alternates per slide for visual variety
-    if slide_idx % 4 == 0:
-        zoom_expr = f"min(1+{0.0004}*on,1.12)"   # slow zoom in
-        x_expr = "(iw-iw/zoom)/2"
-        y_expr = "(ih-ih/zoom)/2"
-    elif slide_idx % 4 == 1:
-        zoom_expr = f"max(1.12-{0.0004}*on,1.0)"  # slow zoom out
-        x_expr = "(iw-iw/zoom)/2"
-        y_expr = "(ih-ih/zoom)/2"
-    elif slide_idx % 4 == 2:
-        zoom_expr = f"min(1+{0.0003}*on,1.10)"
-        x_expr = "0"                               # pan right
-        y_expr = "(ih-ih/zoom)/2"
-    else:
-        zoom_expr = f"min(1+{0.0003}*on,1.10)"
-        x_expr = "(iw-iw/zoom)"                   # pan left
-        y_expr = "(ih-ih/zoom)/2"
+    zoom_expr, x_expr, y_expr = _ken_burns_exprs(slide_idx)
 
-    # Padding fraction → pixel offsets
+    style_name = getattr(slide, "style", "modern")
+    style_cfg = DESIGN_STYLES.get(style_name, DESIGN_STYLES["modern"])
+    layout = getattr(slide, "layout", "hero")
+
     pad_y = int(VIDEO_HEIGHT * SLIDE_PADDING)
     pad_x = int(VIDEO_WIDTH * 0.06)
-
-    # Bold font for title (fontweight= is not a valid FFmpeg drawtext option)
     bold_font = _find_bold_font()
-    font_spec = f"fontfile='{bold_font}':" if bold_font else ""
 
-    # Build drawtext chain for bullets (one filter per line)
-    bullet_filters: List[str] = []
-    line_h = FONT_BULLET_SIZE + 14
-    bullet_y_start = int(VIDEO_HEIGHT * 0.53)
-    for bi, bullet in enumerate(slide.bullets[:5]):  # max 5 bullets
-        txt = _escape_drawtext(f"• {bullet}")
-        y = bullet_y_start + bi * line_h
-        bullet_filters.append(
-            f"drawtext={font_spec}fontcolor=white:fontsize={FONT_BULLET_SIZE}:"
-            f"x={pad_x}:y={y}:"
-            f"text='{txt}':"
-            f"shadowcolor=black@0.8:shadowx=2:shadowy=2:"
-            f"box=0"
-        )
+    visual = _build_visual_filters(slide, style_cfg, layout, bold_font, pad_x, pad_y)
 
-    title_esc = _escape_drawtext(slide.title)
-    title_filter = (
-        f"drawtext={font_spec}fontcolor=white:fontsize={FONT_TITLE_SIZE}:"
-        f"x={pad_x}:y={pad_y}:"
-        f"text='{title_esc}':"
-        f"shadowcolor=black@0.9:shadowx=3:shadowy=3:"
-        f"box=0"
-    )
-
-    # Gradient overlay: dark at top + bottom (pre-calculated pixels, not expressions)
-    grad_top_h = int(VIDEO_HEIGHT * 0.45)
-    grad_bot_y = int(VIDEO_HEIGHT * 0.55)
-    grad_bot_h = VIDEO_HEIGHT - grad_bot_y
-    gradient_filter = (
-        f"drawbox=y=0:color=black@0.55:width=iw:height={grad_top_h}:t=fill,"
-        f"drawbox=y={grad_bot_y}:color=black@0.35:width=iw:height={grad_bot_h}:t=fill"
-    )
-
-    # Separator line under title
-    sep_y = pad_y + FONT_TITLE_SIZE + 16
-    sep_filter = (
-        f"drawbox=x={pad_x}:y={sep_y}:width={VIDEO_WIDTH - pad_x*2}:"
-        f"height=3:color=0x38bdf8@0.9:t=fill"
-    )
-
-    # Scale to 1.5× output for zoompan headroom (max zoom 1.12× needs only 1.2×)
-    # 1.5× gives quality margin while being ~44% faster than the old 2× upscale
     zoom_w = int(VIDEO_WIDTH * 1.5)
     zoom_h = int(VIDEO_HEIGHT * 1.5)
     filters = (
         f"scale={zoom_w}:{zoom_h}:flags=lanczos,"
         f"zoompan=z='{zoom_expr}':x='{x_expr}':y='{y_expr}':"
         f"d={total_frames}:s={VIDEO_WIDTH}x{VIDEO_HEIGHT}:fps={FPS},"
-        f"{gradient_filter},"
-        f"{sep_filter},"
-        f"{title_filter}"
+        + visual
     )
-    for bf in bullet_filters:
-        filters += f",{bf}"
 
     _run_ffmpeg([
         ffmpeg, "-y",
-        "-threads", "0",       # use all available CPU threads
+        "-threads", "0",
         "-loop", "1",
         "-i", str(image_path),
         "-t", str(duration),
         "-vf", filters,
         "-r", str(FPS),
         "-c:v", "libx264",
-        "-crf", "18",          # quality-based encoding (visually lossless)
+        "-crf", "18",
         "-maxrate", VIDEO_BITRATE,
-        "-bufsize", "10M",     # buffer for rate smoothing
+        "-bufsize", "10M",
         "-preset", "fast",
         "-pix_fmt", "yuv420p",
         "-movflags", "+faststart",
@@ -246,8 +512,8 @@ def _render_fallback_slide(slide: Slide, out_path: Path) -> None:
     bullet_filters: List[str] = []
     line_h = FONT_BULLET_SIZE + 14
     y0 = int(VIDEO_HEIGHT * 0.52)
-    for bi, bullet in enumerate(slide.bullets[:5]):
-        txt = _escape_drawtext(f"• {bullet}")
+    for bi, b in enumerate(slide.bullets[:5]):
+        txt = _escape_drawtext(f"• {b}")
         bullet_filters.append(
             f"drawtext=fontcolor=white:fontsize={FONT_BULLET_SIZE}:"
             f"x={pad_x}:y={y0 + bi * line_h}:text='{txt}':"
@@ -285,18 +551,16 @@ def _concat_videos(video_paths: List[Path], audio_path: Path, output_path: Path)
 
     temp_video = output_path.parent / "_temp_noaudio.mp4"
 
-    # Step 1: concatenate slide videos (copy stream — already encoded at CRF 18)
     _run_ffmpeg([
         ffmpeg, "-y",
         "-f", "concat",
         "-safe", "0",
         "-i", str(list_file),
-        "-c:v", "copy",          # no re-encode loss; slides already at quality
+        "-c:v", "copy",
         "-movflags", "+faststart",
         str(temp_video),
     ])
 
-    # Step 2: mux audio track
     _run_ffmpeg([
         ffmpeg, "-y",
         "-i", str(temp_video),
@@ -376,14 +640,13 @@ def run_project(project_id: str, reset: bool = False) -> None:
     # ── Adjust durations to match actual audio length ─────────────────────────
     if audio_duration > 0 and slides:
         slides = _sync_durations_to_audio(slides, audio_duration)
-        # Re-save with corrected durations
         _save_storyboard(storyboard_path, slides)
 
-    # ── Stage 4: Image generation (concurrent) ─────────────────────────────────
+    # ── Stage 4: Image generation (concurrent, max MAX_IMAGES unique) ──────────
+    gen_count = min(len(slides), MAX_IMAGES)
     write_status(project_id, {"state": "images", "progress": 60,
-                              "message": f"Generating {len(slides)} AI images…"})
+                              "message": f"Generating {gen_count} AI images for {len(slides)} slides…"})
     _generate_images_concurrent(provider, slides, paths, project_id)
-    # Re-save storyboard so image_ext values (png/jpg) are persisted for reruns
     _save_storyboard(storyboard_path, slides)
 
     # ── Stage 5: Slide video rendering ────────────────────────────────────────
@@ -415,6 +678,8 @@ def _save_storyboard(path: Path, slides: List[Slide]) -> None:
             "duration": s.duration,
             "start_time": s.start_time,
             "image_ext": s.image_ext,
+            "layout": getattr(s, "layout", "hero"),
+            "style": getattr(s, "style", "modern"),
         }
         for s in slides
     ]
@@ -432,6 +697,8 @@ def _load_storyboard(path: Path) -> List[Slide]:
             duration=float(item.get("duration") or 8),
             start_time=float(item.get("start_time") or 0),
             image_ext=str(item.get("image_ext") or "png"),
+            layout=str(item.get("layout") or "hero"),
+            style=str(item.get("style") or "modern"),
         ))
     return slides
 
@@ -447,7 +714,7 @@ def _sync_durations_to_audio(slides: List[Slide], audio_duration: float) -> List
 
     scale = audio_duration / total
     cumulative = 0.0
-    for i, s in enumerate(slides):
+    for s in slides:
         s.duration = round(s.duration * scale, 3)
         s.start_time = round(cumulative, 3)
         cumulative += s.duration
@@ -460,19 +727,32 @@ def _generate_images_concurrent(
     paths: Dict[str, Path],
     project_id: str,
 ) -> None:
-    """Generate images using a thread pool of size CONCURRENT_IMAGES."""
+    """Generate AI images for the first MAX_IMAGES slides; remaining slides reuse earlier images."""
+    gen_count = min(len(slides), MAX_IMAGES)
     semaphore = threading.Semaphore(CONCURRENT_IMAGES)
     errors: List[str] = []
     completed = [0]
 
-    def _gen_one(idx: int, slide: Slide) -> None:
-        ffmpeg = shutil.which("ffmpeg") or ""
+    def _progress() -> None:
+        write_status(
+            project_id,
+            {
+                "state": "images",
+                "progress": 60 + int((completed[0] / gen_count) * 15),
+                "message": f"Image {completed[0]}/{gen_count} ready",
+            },
+        )
+
+    def _gen_one(idx: int, slide: Slide) -> None:  # idx is 1-based
+        ffmpeg_bin = shutil.which("ffmpeg") or ""
         image_base = paths["assets"] / f"slide_{idx:02d}"
 
         # Check if already generated
         for ext in ("png", "jpg", "jpeg"):
             if (paths["assets"] / f"slide_{idx:02d}.{ext}").exists():
                 slide.image_ext = ext
+                completed[0] += 1
+                _progress()
                 return
 
         with semaphore:
@@ -481,12 +761,11 @@ def _generate_images_concurrent(
                 slide.image_ext = ext
             except Exception as exc:
                 errors.append(f"Slide {idx}: {exc}")
-                # Fallback: generate solid-colour image via ffmpeg
-                if ffmpeg:
+                if ffmpeg_bin:
                     fallback = image_base.with_suffix(".png")
                     subprocess.run(
                         [
-                            ffmpeg, "-y", "-f", "lavfi",
+                            ffmpeg_bin, "-y", "-f", "lavfi",
                             "-i", f"color=c=0x0f172a:s={VIDEO_WIDTH}x{VIDEO_HEIGHT}",
                             "-frames:v", "1", str(fallback),
                         ],
@@ -497,26 +776,24 @@ def _generate_images_concurrent(
                     slide.image_ext = "png"
 
         completed[0] += 1
-        write_status(
-            project_id,
-            {
-                "state": "images",
-                "progress": 60 + int((completed[0] / len(slides)) * 15),
-                "message": f"Image {completed[0]}/{len(slides)} ready",
-            },
-        )
+        _progress()
 
+    # Only spawn threads for the first gen_count slides
     threads = [
         threading.Thread(target=_gen_one, args=(i, slide), daemon=True)
-        for i, slide in enumerate(slides, start=1)
+        for i, slide in enumerate(slides[:gen_count], start=1)
     ]
     for t in threads:
         t.start()
     for t in threads:
         t.join()
 
+    # Propagate image_ext to remaining slides (they will reuse cycling images)
+    if gen_count < len(slides):
+        for i in range(gen_count, len(slides)):
+            slides[i].image_ext = slides[i % gen_count].image_ext
+
     if errors:
-        # Non-fatal: log but continue with fallback slides
         print(f"[WARN] Image gen errors (fallbacks used): {errors}")
 
 
@@ -525,7 +802,9 @@ def _render_all_slides(
     paths: Dict[str, Path],
     project_id: str,
 ) -> List[Path]:
+    gen_count = min(len(slides), MAX_IMAGES)
     slide_videos: List[Path] = []
+
     for idx, slide in enumerate(slides, start=1):
         video_path = paths["output"] / f"slide_{idx:02d}.mp4"
         if video_path.exists():
@@ -541,10 +820,12 @@ def _render_all_slides(
             },
         )
 
-        # Locate image (png or jpg)
+        # Slides beyond MAX_IMAGES reuse an earlier image (cycling)
+        source_idx = idx if idx <= gen_count else ((idx - 1) % gen_count) + 1
+
         image_path: Optional[Path] = None
         for ext in (slide.image_ext, "png", "jpg", "jpeg"):
-            candidate = paths["assets"] / f"slide_{idx:02d}.{ext}"
+            candidate = paths["assets"] / f"slide_{source_idx:02d}.{ext}"
             if candidate.exists():
                 image_path = candidate
                 break

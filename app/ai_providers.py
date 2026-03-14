@@ -28,6 +28,19 @@ class PipelineError(RuntimeError):
 # Data model
 # ──────────────────────────────────────────────────────────────────────────────
 
+# Layout cycle for visual variety – assigned automatically per slide index
+SLIDE_LAYOUTS = [
+    "hero",           # title top-left, sep line, bullets mid (default)
+    "lower_third",    # strong bottom gradient, compact text at bottom
+    "cinematic",      # large centered title, vignette edges, minimal text
+    "card",           # frosted dark card overlay with text inside
+    "top_banner",     # dark top band, title + bullets below
+    "split_right",    # dark right half, right-aligned text
+    "quote",          # full-screen overlay, huge centered title only
+    "minimal_bottom", # thin bottom gradient, small text, image breathes
+]
+
+
 @dataclass
 class Slide:
     title: str
@@ -36,6 +49,8 @@ class Slide:
     duration: float          # seconds, float for precision
     start_time: float = 0.0  # audio offset (for sync)
     image_ext: str = "png"   # "png" or "jpg" – set after image gen
+    layout: str = "hero"     # one of SLIDE_LAYOUTS
+    style: str = "modern"    # design style: modern|vintage|kawaii|neon|minimal
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -311,6 +326,7 @@ class OpenAIProvider(AIProvider):
 
     def generate_storyboard(self, script: str, project_id: str | None = None) -> List[Slide]:
         from .storage import write_status
+        from .config import VIDEO_STYLE
 
         if project_id:
             write_status(project_id, {"state": "storyboard", "progress": 50,
@@ -326,7 +342,7 @@ class OpenAIProvider(AIProvider):
             raise PipelineError("Script has unexpected format (not a list).")
 
         slides: List[Slide] = []
-        for item in raw:
+        for i, item in enumerate(raw):
             title = str(item.get("title", "Untitled"))[:80].strip()
             # Sanitize title for ffmpeg drawtext (remove problematic chars)
             title = re.sub(r"[\":<>|?*]", "", title)
@@ -342,12 +358,20 @@ class OpenAIProvider(AIProvider):
             duration = max(4.0, float(item.get("duration") or 8))
             start_time = max(0.0, float(item.get("start_time") or 0))
 
+            # Assign layout: cycle through SLIDE_LAYOUTS; slides with no bullets → cinematic/quote
+            if not bullets:
+                layout = "cinematic" if i % 2 == 0 else "quote"
+            else:
+                layout = SLIDE_LAYOUTS[i % len(SLIDE_LAYOUTS)]
+
             slides.append(Slide(
                 title=title,
                 bullets=bullets,
                 image_prompt=image_prompt,
                 duration=duration,
                 start_time=start_time,
+                layout=layout,
+                style=VIDEO_STYLE,
             ))
 
         return slides
