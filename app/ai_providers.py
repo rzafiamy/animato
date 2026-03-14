@@ -76,8 +76,8 @@ def _extract_json(raw: str) -> str:
     return raw
 
 
-# Patterns that indicate literal text was embedded in an image prompt.
-# Image generation AI cannot render text reliably, so we strip/replace them.
+# Patterns that strip text/typography references (Flux-Klein cannot render text)
+# and vague conceptual language (Flux-Klein requires physically grounded descriptions).
 _TEXT_IN_PROMPT_PATTERNS = [
     # 'neon sign reading "X"', 'sign saying "X"', 'text reading X', etc.
     (re.compile(
@@ -85,27 +85,38 @@ _TEXT_IN_PROMPT_PATTERNS = [
         r'\s+(?:reading|saying|spelling|labeled|that reads?|written)\s+'
         r'(?:["\'])[^\'"]{2,60}(?:["\'])',
         re.IGNORECASE), ''),
-    # Fallback: any quoted string ≥ 2 words (likely a text label to avoid)
+    # Any quoted string ≥ 2 words (likely a text label)
     (re.compile(r'["\']([A-Za-z0-9][A-Za-z0-9 &\'\-]{2,50})["\']'), ''),
-    # 'chrome typography reading …', 'bold typography …', 'neon typography …'
-    (re.compile(r'\b(?:chrome|bold|neon|retro|80s)\s+typography\b[^,\.]*', re.IGNORECASE), 'bold geometric shapes'),
-    # standalone 'typography' keyword with trailing phrase
+    # Typography references
+    (re.compile(r'\b(?:chrome|bold|neon|retro|80s)\s+typography\b[^,\.]*', re.IGNORECASE), 'geometric surfaces'),
     (re.compile(r'\btypography\b[^,\.]*', re.IGNORECASE), 'geometric forms'),
-    # 'chrome text' alone
     (re.compile(r'\bchrome\s+text\b[^,\.]*', re.IGNORECASE), 'chrome geometric surfaces'),
+    # Vague conceptual / symbolic language that Flux-Klein cannot ground visually
+    (re.compile(r'\b(?:symbolizes?|represents?|evokes?|embodies?|concept of|idea of|metaphor for|stands? for)\b[^,\.]*', re.IGNORECASE), ''),
+    # Surreal / impossible physics
+    (re.compile(r'\b(?:dreamlike|surreal|ethereal|otherworldly|mystical|magical|fantastical|impossible)\b[^,\.]*', re.IGNORECASE), ''),
 ]
 
+def _truncate_to_words(text: str, max_words: int = 100) -> str:
+    """Hard-cap prompt at max_words words (Flux-Klein limit)."""
+    words = text.split()
+    if len(words) <= max_words:
+        return text
+    return " ".join(words[:max_words])
+
 def _sanitize_image_prompt(prompt: str) -> str:
-    """Remove any literal text/label/typography from an image prompt.
-    Image AI models cannot render text reliably; all textual references
-    must be replaced with pure visual/abstract descriptions instead.
+    """Remove text/typography references and vague language for Flux-Klein.
+    Flux-Klein is a 4-bit model that requires concrete, physically grounded
+    descriptions and cannot render text or abstract concepts reliably.
+    Hard-caps output at 100 words.
     """
     for pattern, replacement in _TEXT_IN_PROMPT_PATTERNS:
         prompt = pattern.sub(replacement, prompt)
     # Clean up double spaces / trailing commas left after removal
     prompt = re.sub(r',\s*,', ',', prompt)
     prompt = re.sub(r'\s{2,}', ' ', prompt).strip(' ,')
-    return prompt
+    # Enforce Flux-Klein 100-word limit
+    return _truncate_to_words(prompt, 100)
 
 
 def _retry(fn, label: str, retries: int = MAX_RETRIES):
@@ -149,16 +160,19 @@ class AIProvider:
 
 class OpenAIProvider(AIProvider):
 
-    # Visual style palette – cycles across chunks for variety
+    # Visual style palette for Flux-Klein – concrete, photographic, physically grounded.
+    # Flux is a 4-bit model that requires precise real-world descriptions; abstract/
+    # imaginative concepts produce poor results. Each style specifies lighting, camera
+    # angle, materials and palette so GPT can anchor the image_prompt accordingly.
     STYLES = [
-        "Hyper-realistic cinematic photography, 8K ultra-sharp, dramatic Rembrandt lighting, bokeh depth of field",
-        "Stylized 3-D isometric illustration, vibrant jewel-tone palette, soft global illumination, Octane render",
-        "Conceptual digital art, abstract symbolic geometry, neon gradient aurora, dark background",
-        "Minimalist flat-vector design, bold Swiss-typography-inspired shapes, professional muted palette",
-        "Cyberpunk cityscape painting, rain-soaked neon reflections, high contrast, dramatic atmosphere",
-        "Architectural technical blueprint, precise line-work, grid overlay, deep-blue ink on white",
-        "Impressionist oil painting, expressive palate-knife texture, museum gallery lighting",
-        "Retro synthwave poster art, warm magenta/cyan gradient sky, 80s grid, chrome typography",
+        "Cinematic 35mm photography, wide-angle establishing shot, dramatic golden-hour side lighting, long shadows, shallow depth of field, warm amber color grade, photorealistic",
+        "Commercial studio photography, three-point lighting, polished chrome and glass surfaces, neutral gradient background, ultra-sharp product detail, controlled specular highlights",
+        "Aerial drone overhead shot, midday sun, geometric patterns of urban infrastructure, crisp concrete and steel, muted earth-tone palette, photorealistic",
+        "Dark dramatic interior, single hard spotlight from above, deep shadow chiaroscuro, polished concrete floor, rough exposed brick, cool desaturated palette, cinematic",
+        "Blue-hour exterior, ambient street and neon lighting, wet reflective asphalt, sharp architectural glass facades, cool 6000K color temperature, photorealistic night scene",
+        "Macro close-up photography, ring-flash illumination, extreme material texture detail, shallow depth of field, isolated subject on soft neutral background, ultra-sharp",
+        "Soft diffused overcast window light, warm neutral interior workspace, documentary realism, matte surfaces, honest color rendition, sharp foreground detail",
+        "Sunrise landscape, low-angle raking light casting long shadows across terrain, saturated warm amber and deep blue sky, wide panoramic composition, photorealistic nature",
     ]
 
     def __init__(self, api_key: str, base_url: str) -> None:
@@ -252,18 +266,22 @@ class OpenAIProvider(AIProvider):
             style = self.STYLES[i % len(self.STYLES)]
 
             prompt = (
-                f"You are a visual director. Plan 1–2 cinematic scenes for this podcast segment.\n"
+                f"You are a cinematographer writing prompts for Flux-Klein, a 4-bit image AI.\n"
+                f"Flux-Klein requires PRECISE, PHYSICALLY GROUNDED descriptions. "
+                f"It does NOT support vague, abstract, symbolic, or imaginative concepts — those produce garbage output.\n"
                 f"Segment timing: {chunk_start_t:.1f}s → {chunk_end_t:.1f}s (duration ~{duration:.1f}s).\n"
-                f"Visual style: {style}\n\n"
+                f"Visual style reference: {style}\n\n"
                 "Return a JSON object {\"scenes\": [...]}. Each scene:\n"
                 "  - title: short punchy header, max 8 words, NO special characters\n"
-                "  - image_prompt: rich VISUAL description using the stated style, landscape 16:9.\n"
-                "    CRITICAL IMAGE PROMPT RULES — the image AI cannot render text:\n"
-                "    * NEVER include any words, letters, numbers, labels, signs, or typography in the image_prompt\n"
-                "    * NEVER use phrases like 'text reading X', 'label X', 'sign X', 'typography X', 'chrome text'\n"
-                "    * Describe ONLY shapes, colors, lighting, textures, compositions, and abstract elements\n"
-                "    * Replace any textual concept with a pure visual metaphor (e.g. instead of 'sign reading ERROR'\n"
-                "      use 'a fractured red glowing geometric shape')\n"
+                "  - image_prompt: a CONCRETE, PRECISE Flux-Klein image description. Strict rules:\n"
+                "    * Describe a real, physically grounded scene — no metaphors, no surreal ideas, no abstract symbolism\n"
+                "    * Structure: [main subject] + [environment/setting] + [lighting type and direction] + [camera angle] + [material/texture details] + [color palette]\n"
+                "    * Use cinematography terms: '35mm lens', 'f/2.8 shallow bokeh', 'golden-hour side light', 'overhead drone', 'rim lighting', 'diffused window light'\n"
+                "    * Specify materials explicitly: 'brushed aluminium', 'polished concrete', 'rough oak wood', 'frosted glass', 'woven fabric'\n"
+                "    * NO text, words, letters, numbers, signs, labels, screens with content, or any typography\n"
+                "    * NO vague conceptual words: 'symbolizes', 'represents', 'evokes', 'concept of', 'idea of', 'metaphor for'\n"
+                "    * NO imaginative or surreal elements: no impossible physics, no fantasy creatures, no dreamlike scenes\n"
+                "    * MAXIMUM 100 words — be dense, precise, and sensory\n"
                 "  - bullets: list of 2–4 on-screen talking points, max 10 words each\n"
                 f"  - duration: float seconds (all scenes must sum to ~{duration:.1f}s)\n"
                 f"  - start_time: float seconds from audio start (first scene: {chunk_start_t:.2f})\n\n"
@@ -319,8 +337,8 @@ class OpenAIProvider(AIProvider):
                 if clean:
                     bullets.append(clean)
 
-            image_prompt = str(item.get("image_prompt", "Abstract professional background"))[:500]
-            image_prompt = _sanitize_image_prompt(image_prompt)
+            image_prompt = str(item.get("image_prompt", "Modern office interior, diffused window light, clean desk, muted neutral tones"))[:600]
+            image_prompt = _sanitize_image_prompt(image_prompt)  # strips text/vague language, enforces 100-word cap
             duration = max(4.0, float(item.get("duration") or 8))
             start_time = max(0.0, float(item.get("start_time") or 0))
 
@@ -341,15 +359,17 @@ class OpenAIProvider(AIProvider):
         Returns actual file extension used ('png' or 'jpg')."""
         import base64
 
-        # Final sanitization: strip any remaining text/typography references
+        # Final sanitization: enforce Flux-Klein constraints (no text, concrete scene, ≤100 words)
         clean_prompt = _sanitize_image_prompt(prompt)
-        # Prefix a hard constraint: image AI must not render any text
-        clean_prompt = "No text, no words, no letters, no labels, no signs. " + clean_prompt
+        # Prepend a hard no-text constraint (Flux-Klein ignores text rendering requests)
+        clean_prompt = "No text, no words, no letters, no signs, no labels. " + clean_prompt
+        # Re-enforce 100-word limit after prefix (prefix is ~10 words)
+        clean_prompt = _truncate_to_words(clean_prompt, 100)
 
         def _call():
             resp = self.client.images.generate(
                 model=self.dalle_model,
-                prompt=clean_prompt[:950],  # DALL-E limit
+                prompt=clean_prompt[:950],  # API hard limit
                 size="1792x1024",
                 quality=self.dalle_quality,  # type: ignore[arg-type]
                 response_format="b64_json",

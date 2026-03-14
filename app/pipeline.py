@@ -46,6 +46,23 @@ def _ffmpeg_path() -> str:
     return p
 
 
+def _find_bold_font() -> Optional[str]:
+    """Locate a bold sans-serif font file on common Linux/macOS paths."""
+    candidates = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
+        "/usr/share/fonts/truetype/ubuntu/Ubuntu-B.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
+        "/System/Library/Fonts/Helvetica.ttc",  # macOS
+        "/Library/Fonts/Arial Bold.ttf",        # macOS
+    ]
+    for path in candidates:
+        if Path(path).exists():
+            return path
+    return None
+
+
 def _run_ffmpeg(args: List[str], cwd: Optional[Path] = None) -> None:
     proc = subprocess.run(
         args,
@@ -135,6 +152,10 @@ def _render_slide_video(
     pad_y = int(VIDEO_HEIGHT * SLIDE_PADDING)
     pad_x = int(VIDEO_WIDTH * 0.06)
 
+    # Bold font for title (fontweight= is not a valid FFmpeg drawtext option)
+    bold_font = _find_bold_font()
+    font_spec = f"fontfile='{bold_font}':" if bold_font else ""
+
     # Build drawtext chain for bullets (one filter per line)
     bullet_filters: List[str] = []
     line_h = FONT_BULLET_SIZE + 14
@@ -143,7 +164,7 @@ def _render_slide_video(
         txt = _escape_drawtext(f"• {bullet}")
         y = bullet_y_start + bi * line_h
         bullet_filters.append(
-            f"drawtext=fontcolor=white:fontsize={FONT_BULLET_SIZE}:"
+            f"drawtext={font_spec}fontcolor=white:fontsize={FONT_BULLET_SIZE}:"
             f"x={pad_x}:y={y}:"
             f"text='{txt}':"
             f"shadowcolor=black@0.8:shadowx=2:shadowy=2:"
@@ -152,18 +173,20 @@ def _render_slide_video(
 
     title_esc = _escape_drawtext(slide.title)
     title_filter = (
-        f"drawtext=fontcolor=white:fontsize={FONT_TITLE_SIZE}:"
+        f"drawtext={font_spec}fontcolor=white:fontsize={FONT_TITLE_SIZE}:"
         f"x={pad_x}:y={pad_y}:"
         f"text='{title_esc}':"
         f"shadowcolor=black@0.9:shadowx=3:shadowy=3:"
-        f"fontweight=bold:"
         f"box=0"
     )
 
-    # Gradient overlay: dark at top + bottom (letterbox-style)
+    # Gradient overlay: dark at top + bottom (pre-calculated pixels, not expressions)
+    grad_top_h = int(VIDEO_HEIGHT * 0.45)
+    grad_bot_y = int(VIDEO_HEIGHT * 0.55)
+    grad_bot_h = VIDEO_HEIGHT - grad_bot_y
     gradient_filter = (
-        "drawbox=y=0:color=black@0.55:width=iw:height=ih*0.45:t=fill,"
-        "drawbox=y=ih*0.55:color=black@0.35:width=iw:height=ih*0.45:t=fill"
+        f"drawbox=y=0:color=black@0.55:width=iw:height={grad_top_h}:t=fill,"
+        f"drawbox=y={grad_bot_y}:color=black@0.35:width=iw:height={grad_bot_h}:t=fill"
     )
 
     # Separator line under title
@@ -173,8 +196,12 @@ def _render_slide_video(
         f"height=3:color=0x38bdf8@0.9:t=fill"
     )
 
+    # Scale to 1.5× output for zoompan headroom (max zoom 1.12× needs only 1.2×)
+    # 1.5× gives quality margin while being ~44% faster than the old 2× upscale
+    zoom_w = int(VIDEO_WIDTH * 1.5)
+    zoom_h = int(VIDEO_HEIGHT * 1.5)
     filters = (
-        f"scale={VIDEO_WIDTH * 2}:{VIDEO_HEIGHT * 2}:flags=lanczos,"
+        f"scale={zoom_w}:{zoom_h}:flags=lanczos,"
         f"zoompan=z='{zoom_expr}':x='{x_expr}':y='{y_expr}':"
         f"d={total_frames}:s={VIDEO_WIDTH}x{VIDEO_HEIGHT}:fps={FPS},"
         f"{gradient_filter},"
@@ -186,6 +213,7 @@ def _render_slide_video(
 
     _run_ffmpeg([
         ffmpeg, "-y",
+        "-threads", "0",       # use all available CPU threads
         "-loop", "1",
         "-i", str(image_path),
         "-t", str(duration),
@@ -355,6 +383,8 @@ def run_project(project_id: str, reset: bool = False) -> None:
     write_status(project_id, {"state": "images", "progress": 60,
                               "message": f"Generating {len(slides)} AI images…"})
     _generate_images_concurrent(provider, slides, paths, project_id)
+    # Re-save storyboard so image_ext values (png/jpg) are persisted for reruns
+    _save_storyboard(storyboard_path, slides)
 
     # ── Stage 5: Slide video rendering ────────────────────────────────────────
     write_status(project_id, {"state": "render", "progress": 75,
