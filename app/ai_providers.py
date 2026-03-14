@@ -76,6 +76,261 @@ ART_STYLES: dict = {
 }
 
 
+# Unified design themes – one theme per art style, each paired with the most
+# harmonious slide design style and a palette_hint to anchor image colours.
+DESIGN_THEMES: dict = {
+    # ── Photography & Realism ──────────────────────────────────────────────
+    "photo": {
+        "name": "Hyper-Real Photo",
+        "description": "Lifelike DSLR photography with natural light and texture",
+        "art_style": "photo",
+        "design_style": "modern",
+        "palette_hint": "natural daylight tones, neutral greys and warm whites, photorealistic palette",
+        "preview_colors": ["#1a1a1a", "#38bdf8", "#d4d4d4"],
+    },
+    "cinematic_pro": {
+        "name": "Cinematic Pro",
+        "description": "Dramatic widescreen cinema with deep shadow grading",
+        "art_style": "cinematic",
+        "design_style": "modern",
+        "palette_hint": "dramatic deep blue-silver cinematic colour grade, warm amber highlights, rich shadow contrast",
+        "preview_colors": ["#0d1929", "#38bdf8", "#c8922a"],
+    },
+    # ── Sci-Fi & Futurism ─────────────────────────────────────────────────
+    "neon_pulse": {
+        "name": "Neon Pulse",
+        "description": "Cyberpunk city nights with electrifying neon glow",
+        "art_style": "cyberpunk",
+        "design_style": "neon",
+        "palette_hint": "electric neon cyan and magenta on dark rain-wet streets, holographic atmosphere",
+        "preview_colors": ["#050510", "#00ffcc", "#ff00cc"],
+    },
+    "futuristic_ui": {
+        "name": "Futuristic HUD",
+        "description": "Glowing holographic interface with sci-fi precision",
+        "art_style": "futuristic_ui",
+        "design_style": "neon",
+        "palette_hint": "holographic teal and electric blue glyphs, translucent dark panels, sci-fi glow",
+        "preview_colors": ["#030d1a", "#00d4ff", "#0066ff"],
+    },
+    "retro_synthwave": {
+        "name": "Retro Synthwave",
+        "description": "80s nostalgia with chrome grids and neon sunsets",
+        "art_style": "synthwave",
+        "design_style": "neon",
+        "palette_hint": "magenta-pink sunset gradient, chrome reflective grid, electric violet and hot pink",
+        "preview_colors": ["#08001a", "#ff2d78", "#b24bff"],
+    },
+    # ── Illustration & Animation ──────────────────────────────────────────
+    "cartoon_pop": {
+        "name": "Cartoon Pop",
+        "description": "Bold outlines and saturated flat colours with energy",
+        "art_style": "cartoon",
+        "design_style": "kawaii",
+        "palette_hint": "vivid primary colours, bold black outlines, flat saturated palette, playful mood",
+        "preview_colors": ["#1a0a2e", "#ff6eb4", "#ffe066"],
+    },
+    "pixar_3d": {
+        "name": "Pixar 3D",
+        "description": "Polished 3D render with cinematic studio lighting",
+        "art_style": "pixar",
+        "design_style": "kawaii",
+        "palette_hint": "warm polished 3D render tones, rich saturated highlights, friendly colour palette",
+        "preview_colors": ["#0a1a30", "#ff6eb4", "#f5a623"],
+    },
+    "corporate_pro": {
+        "name": "Corporate Pro",
+        "description": "Clean flat design with confident blue accents",
+        "art_style": "flat",
+        "design_style": "modern",
+        "palette_hint": "clean sky-blue and teal flat palette, crisp white space, professional cool tones",
+        "preview_colors": ["#061428", "#0ea5e9", "#38bdf8"],
+    },
+    "isometric_tech": {
+        "name": "Isometric Tech",
+        "description": "Crisp vector geometry with a tech-forward palette",
+        "art_style": "isometric",
+        "design_style": "modern",
+        "palette_hint": "bright tech blues and greens, crisp geometric isometric palette, clean white highlights",
+        "preview_colors": ["#080f20", "#38bdf8", "#34d399"],
+    },
+    "kawaii_dream": {
+        "name": "Kawaii Dream",
+        "description": "Ultra-cute pastel world with soft rounded aesthetics",
+        "art_style": "kawaii",
+        "design_style": "kawaii",
+        "palette_hint": "soft pastel pink lavender and cream, warm gentle light, adorable cute mood",
+        "preview_colors": ["#1a0830", "#ff6eb4", "#ffcce8"],
+    },
+    "claymation": {
+        "name": "Claymation",
+        "description": "Handmade clay stop-motion with warm practical light",
+        "art_style": "claymation",
+        "design_style": "kawaii",
+        "palette_hint": "warm clay earth tones, soft pastel highlights, handmade tactile palette",
+        "preview_colors": ["#1a0f0a", "#ff6eb4", "#f5c07a"],
+    },
+    "lego_build": {
+        "name": "LEGO Build",
+        "description": "Plastic brick geometry with playful toy-box colours",
+        "art_style": "lego",
+        "design_style": "kawaii",
+        "palette_hint": "bold primary LEGO red yellow blue, glossy plastic surface, toy-bright palette",
+        "preview_colors": ["#0a1a2e", "#ff2d2d", "#ffe600"],
+    },
+    "lowpoly_geo": {
+        "name": "Low-Poly Geo",
+        "description": "Faceted 3D geometry with crisp hard-shaded surfaces",
+        "art_style": "lowpoly",
+        "design_style": "modern",
+        "palette_hint": "geometric teal-blue and violet faceted palette, sharp contrast flat shading",
+        "preview_colors": ["#0a1520", "#34d399", "#818cf8"],
+    },
+    # ── Traditional & Fine Art ────────────────────────────────────────────
+    "watercolor_soft": {
+        "name": "Watercolor Soft",
+        "description": "Delicate pastel brushwork with soft bleeding washes",
+        "art_style": "watercolor",
+        "design_style": "vintage",
+        "palette_hint": "soft watercolor washes of warm cream, rose, and sage, gentle bleeding pigment edges",
+        "preview_colors": ["#150d0a", "#c9a02a", "#e8c8b0"],
+    },
+    "baroque_gold": {
+        "name": "Baroque Gold",
+        "description": "Rich oil painting with ornate gold and theatrical shadow",
+        "art_style": "baroque",
+        "design_style": "vintage",
+        "palette_hint": "deep Baroque shadow, rich ochre and burnt sienna, ornate gold highlight, candlelit warmth",
+        "preview_colors": ["#1a0a00", "#c9a02a", "#8b4513"],
+    },
+    "impressionist": {
+        "name": "Impressionist",
+        "description": "Loose painterly brushwork with vibrant broken colour",
+        "art_style": "impressionist",
+        "design_style": "vintage",
+        "palette_hint": "soft dappled light, impressionist warm gold and lavender, loose vibrant broken-colour palette",
+        "preview_colors": ["#15100a", "#c9a02a", "#a78bca"],
+    },
+    "ukiyoe": {
+        "name": "Ukiyo-e Print",
+        "description": "Japanese woodblock with flat colour and flowing outlines",
+        "art_style": "ukiyoe",
+        "design_style": "vintage",
+        "palette_hint": "traditional ukiyo-e indigo blue, vermillion red, and rice-paper cream, flat woodblock palette",
+        "preview_colors": ["#0d1520", "#c9a02a", "#c0392b"],
+    },
+    "stained_glass": {
+        "name": "Stained Glass",
+        "description": "Jewel-toned cathedral light through bold lead frames",
+        "art_style": "stained_glass",
+        "design_style": "vintage",
+        "palette_hint": "jewel-toned ruby, sapphire, and emerald stained glass, glowing backlit palette",
+        "preview_colors": ["#0a0a1a", "#c9a02a", "#0d6b3a"],
+    },
+    "charcoal_sketch": {
+        "name": "Charcoal Sketch",
+        "description": "Expressive hand-drawn linework on rough paper grain",
+        "art_style": "charcoal",
+        "design_style": "minimal",
+        "palette_hint": "dark charcoal black on cream paper grain, smudged mid-grey, monochrome textured palette",
+        "preview_colors": ["#0a0a0a", "#666666", "#d4c8b0"],
+    },
+    # ── Monochrome & Minimal ──────────────────────────────────────────────
+    "minimal_clean": {
+        "name": "Minimal Clean",
+        "description": "Pure editorial monochrome with generous negative space",
+        "art_style": "mono",
+        "design_style": "minimal",
+        "palette_hint": "pure black and white high contrast, clean grey neutral tones, stark editorial minimal",
+        "preview_colors": ["#0a0a0a", "#666666", "#f0f0f0"],
+    },
+    "dark_noir": {
+        "name": "Dark Noir",
+        "description": "Moody chiaroscuro shadows with rain-slick mystery",
+        "art_style": "noir",
+        "design_style": "neon",
+        "palette_hint": "deep black with single cool moonlight beam, wet cobblestone reflections, dramatic monochrome",
+        "preview_colors": ["#050505", "#1a1a2e", "#b0b0b0"],
+    },
+    "manga_ink": {
+        "name": "Manga Ink",
+        "description": "Classic B&W manga with screentone and motion lines",
+        "art_style": "manga",
+        "design_style": "minimal",
+        "palette_hint": "stark black ink on white, screentone grey halftone, clean high-contrast manga palette",
+        "preview_colors": ["#0a0a0a", "#555555", "#e8e8e8"],
+    },
+    "brutalist": {
+        "name": "Brutalist",
+        "description": "Raw concrete monoliths with stark geometric shadow",
+        "art_style": "brutalist",
+        "design_style": "minimal",
+        "palette_hint": "raw concrete grey, harsh geometric shadow, industrial monochrome palette",
+        "preview_colors": ["#111111", "#555555", "#cccccc"],
+    },
+    # ── Genre & Retro ─────────────────────────────────────────────────────
+    "golden_vintage": {
+        "name": "Golden Vintage",
+        "description": "Retro pulp magazine with bold ink and aged paper",
+        "art_style": "vintage_pulp",
+        "design_style": "vintage",
+        "palette_hint": "warm sepia amber and cream, aged golden patina, bold saturated retro inks",
+        "preview_colors": ["#1a0a00", "#c9a02a", "#f5e6c8"],
+    },
+    "industrial_steam": {
+        "name": "Industrial Steam",
+        "description": "Brass gears and Victorian machinery in warm metallic haze",
+        "art_style": "steampunk",
+        "design_style": "vintage",
+        "palette_hint": "warm brass copper and aged leather tones, Victorian sepia, steam-haze atmosphere",
+        "preview_colors": ["#1a0e00", "#c9a02a", "#7a4a1a"],
+    },
+    "dieselpunk": {
+        "name": "Dieselpunk",
+        "description": "WWI-era riveted industry with muted metal and smoke",
+        "art_style": "dieselpunk",
+        "design_style": "vintage",
+        "palette_hint": "muted olive-green and rust-brown steel, WWI-era industrial tones, smoke-grey palette",
+        "preview_colors": ["#0f0e0a", "#c9a02a", "#5a5040"],
+    },
+    # ── Dark & Atmospheric ────────────────────────────────────────────────
+    "fantasy_epic": {
+        "name": "Fantasy Epic",
+        "description": "Grand magical vistas with heroic golden light",
+        "art_style": "fantasy_epic",
+        "design_style": "modern",
+        "palette_hint": "deep azure sky, golden magical sunlight rays, rich teal and sapphire atmosphere",
+        "preview_colors": ["#0a1a2e", "#4a8fd4", "#d4a820"],
+    },
+    "gothic_dark": {
+        "name": "Gothic Dark",
+        "description": "Brooding cathedral shadows with candlelit melancholy",
+        "art_style": "gothic",
+        "design_style": "neon",
+        "palette_hint": "deep desaturated purple and slate, cold candlelit amber, gothic shadow palette",
+        "preview_colors": ["#080510", "#00ffcc", "#4a3060"],
+    },
+    # ── Japanese Animation ────────────────────────────────────────────────
+    "anime_vivid": {
+        "name": "Anime Vivid",
+        "description": "Polished anime art with crisp linework and rich gradients",
+        "art_style": "anime",
+        "design_style": "kawaii",
+        "palette_hint": "vibrant anime sky-blue and cherry-blossom pink, rich colour gradient, dynamic highlights",
+        "preview_colors": ["#0a0820", "#ff6eb4", "#38bdf8"],
+    },
+    # ── Professional Illustration ─────────────────────────────────────────
+    "concept_art": {
+        "name": "AAA Concept Art",
+        "description": "Matte-painting precision with dramatic narrative mood",
+        "art_style": "concept_art",
+        "design_style": "modern",
+        "palette_hint": "dramatic cinematic mood palette, deep teal and gold matte-painting tones, layered atmospheric depth",
+        "preview_colors": ["#0a1520", "#38bdf8", "#c8922a"],
+    },
+}
+
+
 @dataclass
 class Slide:
     title: str
@@ -199,7 +454,7 @@ class AIProvider:
     def generate_storyboard(self, script: str, project_id: str | None = None) -> List[Slide]:
         raise NotImplementedError
 
-    def generate_image(self, prompt: str, output_path: Path) -> str:
+    def generate_image(self, prompt: str, output_path: Path, art_style: str = "photo", palette_hint: str = "") -> str:
         """Generate image and save. Returns actual extension ('png' or 'jpg')."""
         raise NotImplementedError
 
@@ -413,9 +668,11 @@ class OpenAIProvider(AIProvider):
 
     # ── Image generation ──────────────────────────────────────────────────────
 
-    def generate_image(self, prompt: str, output_path: Path, art_style: str = "photo") -> str:
+    def generate_image(self, prompt: str, output_path: Path, art_style: str = "photo", palette_hint: str = "") -> str:
         """Generate and save image using b64_json response format.
-        Returns actual file extension used ('png' or 'jpg')."""
+        Returns actual file extension used ('png' or 'jpg').
+        palette_hint: optional colour description prepended to ensure images match the slide design theme.
+        """
         import base64
 
         # Sanitize: no text/vague language, enforce 100-word cap
@@ -423,7 +680,11 @@ class OpenAIProvider(AIProvider):
         # Apply art style modifier for visual harmony across all slides
         style_cfg = ART_STYLES.get(art_style, ART_STYLES["photo"])
         style_modifier = style_cfg["modifier"]
-        clean_prompt = f"{clean_prompt}. Style: {style_modifier}."
+        # Palette hint anchors the image colour to the chosen design theme
+        if palette_hint:
+            clean_prompt = f"{clean_prompt}. Color palette: {palette_hint}. Style: {style_modifier}."
+        else:
+            clean_prompt = f"{clean_prompt}. Style: {style_modifier}."
         # Hard no-text prefix
         clean_prompt = "No text, no words, no letters, no signs, no labels. " + clean_prompt
         clean_prompt = _truncate_to_words(clean_prompt, 120)  # slightly wider for style modifier

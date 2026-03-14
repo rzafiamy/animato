@@ -54,49 +54,49 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeStage      = null;
   let editingSlideIdx  = null;
   let storyboardData   = [];
-  let selectedArtStyle  = localStorage.getItem('animato_art_style')  || 'photo';
-  let selectedVideoStyle = localStorage.getItem('animato_video_style') || 'modern';
+  let selectedTheme    = localStorage.getItem('animato_theme') || 'cinematic_pro';
 
-  // ── Style definitions ────────────────────────────────────────────────────
-  const VIDEO_STYLES = {
-    modern:  { name: 'Modern',   color: 'sky',    dot: '#38bdf8' },
-    vintage: { name: 'Vintage',  color: 'amber',  dot: '#f59e0b' },
-    kawaii:  { name: 'Kawaii',   color: 'pink',   dot: '#ec4899' },
-    neon:    { name: 'Neon',     color: 'violet', dot: '#a855f7' },
-    minimal: { name: 'Minimal',  color: 'slate',  dot: '#94a3b8' },
-  };
-
-  const ART_STYLES = {
-    photo:        'Hyper-Real Photo',
-    cinematic:    'Epic Cinematic',
-    cyberpunk:    'Surreal Cyberpunk',
-    cartoon:      'Vibrant Cartoon',
-    pixar:        'Pixar 3D Render',
-    flat:         'Flat Illustration',
-    isometric:    'Isometric Vector',
-    watercolor:   'Watercolour',
-    mono:         'Monochrome',
-    synthwave:    'Retro Synthwave',
-    noir:         'Neo-Noir Grit',
-    baroque:      'Baroque Painting',
-    anime:        'High-Detail Anime',
-    manga:        'B&W Manga',
-    vintage_pulp: 'Vintage Pulp',
-    steampunk:    'Steampunk',
-    fantasy_epic: 'High Fantasy',
-    gothic:       'Gothic Dark',
-    lowpoly:      'Low-Poly Render',
-    lego:         'LEGO Build',
-    ukiyoe:       'Ukiyo-e Print',
-    concept_art:  'Concept Art',
-    impressionist:'Impressionist',
-    brutalist:    'Brutalist',
-    futuristic_ui:'Futuristic HUD',
-    claymation:   'Claymation',
-    stained_glass:'Stained Glass',
-    charcoal:     'Charcoal Sketch',
-    dieselpunk:   'Dieselpunk',
-    kawaii:       'Cute Kawaii',
+  // ── Unified design themes – one per art style (mirrors DESIGN_THEMES in ai_providers.py) ────
+  const DESIGN_THEMES = {
+    // Photography & Realism
+    photo:           { name: 'Hyper-Real Photo',    description: 'Lifelike DSLR photography with natural light and texture',         art: 'Hyper-Real Photo',      design: 'Modern',   colors: ['#1a1a1a', '#38bdf8', '#d4d4d4'] },
+    cinematic_pro:   { name: 'Cinematic Pro',       description: 'Dramatic widescreen cinema with deep shadow grading',              art: 'Epic Cinematic',        design: 'Modern',   colors: ['#0d1929', '#38bdf8', '#c8922a'] },
+    // Sci-Fi & Futurism
+    neon_pulse:      { name: 'Neon Pulse',          description: 'Cyberpunk city nights with electrifying neon glow',                art: 'Surreal Cyberpunk',     design: 'Neon',     colors: ['#050510', '#00ffcc', '#ff00cc'] },
+    futuristic_ui:   { name: 'Futuristic HUD',      description: 'Glowing holographic interface with sci-fi precision',             art: 'Futuristic HUD',        design: 'Neon',     colors: ['#030d1a', '#00d4ff', '#0066ff'] },
+    retro_synthwave: { name: 'Retro Synthwave',     description: '80s nostalgia with chrome grids and neon sunsets',                art: 'Retro Synthwave',       design: 'Neon',     colors: ['#08001a', '#ff2d78', '#b24bff'] },
+    // Illustration & Animation
+    cartoon_pop:     { name: 'Cartoon Pop',         description: 'Bold outlines and saturated flat colours with energy',            art: 'Vibrant Cartoon',       design: 'Kawaii',   colors: ['#1a0a2e', '#ff6eb4', '#ffe066'] },
+    pixar_3d:        { name: 'Pixar 3D',            description: 'Polished 3D render with cinematic studio lighting',               art: 'Pixar 3D Render',       design: 'Kawaii',   colors: ['#0a1a30', '#ff6eb4', '#f5a623'] },
+    corporate_pro:   { name: 'Corporate Pro',       description: 'Clean flat design with confident blue accents',                   art: 'Flat Illustration',     design: 'Modern',   colors: ['#061428', '#0ea5e9', '#38bdf8'] },
+    isometric_tech:  { name: 'Isometric Tech',      description: 'Crisp vector geometry with a tech-forward palette',              art: 'Isometric Vector',      design: 'Modern',   colors: ['#080f20', '#38bdf8', '#34d399'] },
+    kawaii_dream:    { name: 'Kawaii Dream',        description: 'Ultra-cute pastel world with soft rounded aesthetics',            art: 'Cute Kawaii',           design: 'Kawaii',   colors: ['#1a0830', '#ff6eb4', '#ffcce8'] },
+    claymation:      { name: 'Claymation',          description: 'Handmade clay stop-motion with warm practical light',             art: 'Claymation Style',      design: 'Kawaii',   colors: ['#1a0f0a', '#ff6eb4', '#f5c07a'] },
+    lego_build:      { name: 'LEGO Build',          description: 'Plastic brick geometry with playful toy-box colours',            art: 'LEGO Brick Build',      design: 'Kawaii',   colors: ['#0a1a2e', '#ff2d2d', '#ffe600'] },
+    lowpoly_geo:     { name: 'Low-Poly Geo',        description: 'Faceted 3D geometry with crisp hard-shaded surfaces',            art: 'Low-Poly Render',       design: 'Modern',   colors: ['#0a1520', '#34d399', '#818cf8'] },
+    // Traditional & Fine Art
+    watercolor_soft: { name: 'Watercolor Soft',     description: 'Delicate pastel brushwork with soft bleeding washes',            art: 'Watercolour Pastel',    design: 'Vintage',  colors: ['#150d0a', '#c9a02a', '#e8c8b0'] },
+    baroque_gold:    { name: 'Baroque Gold',        description: 'Rich oil painting with ornate gold and theatrical shadow',       art: 'Baroque Painting',      design: 'Vintage',  colors: ['#1a0a00', '#c9a02a', '#8b4513'] },
+    impressionist:   { name: 'Impressionist',       description: 'Loose painterly brushwork with vibrant broken colour',           art: 'Impressionist Painting', design: 'Vintage', colors: ['#15100a', '#c9a02a', '#a78bca'] },
+    ukiyoe:          { name: 'Ukiyo-e Print',       description: 'Japanese woodblock with flat colour and flowing outlines',       art: 'Ukiyo-e Woodblock',     design: 'Vintage',  colors: ['#0d1520', '#c9a02a', '#c0392b'] },
+    stained_glass:   { name: 'Stained Glass',       description: 'Jewel-toned cathedral light through bold lead frames',          art: 'Stained Glass',         design: 'Vintage',  colors: ['#0a0a1a', '#c9a02a', '#0d6b3a'] },
+    charcoal_sketch: { name: 'Charcoal Sketch',     description: 'Expressive hand-drawn linework on rough paper grain',           art: 'Charcoal Sketch',       design: 'Minimal',  colors: ['#0a0a0a', '#666666', '#d4c8b0'] },
+    // Monochrome & Minimal
+    minimal_clean:   { name: 'Minimal Clean',       description: 'Pure editorial monochrome with generous negative space',         art: 'Minimalist Monochrome', design: 'Minimal',  colors: ['#0a0a0a', '#666666', '#f0f0f0'] },
+    dark_noir:       { name: 'Dark Noir',           description: 'Moody chiaroscuro shadows with rain-slick mystery',             art: 'Neo-Noir Grit',         design: 'Neon',     colors: ['#050505', '#1a1a2e', '#b0b0b0'] },
+    manga_ink:       { name: 'Manga Ink',           description: 'Classic B&W manga with screentone and motion lines',            art: 'B&W Manga',             design: 'Minimal',  colors: ['#0a0a0a', '#555555', '#e8e8e8'] },
+    brutalist:       { name: 'Brutalist',           description: 'Raw concrete monoliths with stark geometric shadow',            art: 'Brutalist Architecture', design: 'Minimal', colors: ['#111111', '#555555', '#cccccc'] },
+    // Genre & Retro
+    golden_vintage:  { name: 'Golden Vintage',      description: 'Retro pulp magazine with bold ink and aged paper',              art: 'Vintage Pulp Cover',    design: 'Vintage',  colors: ['#1a0a00', '#c9a02a', '#f5e6c8'] },
+    industrial_steam:{ name: 'Industrial Steam',    description: 'Brass gears and Victorian machinery in warm metallic haze',     art: 'Industrial Steampunk',  design: 'Vintage',  colors: ['#1a0e00', '#c9a02a', '#7a4a1a'] },
+    dieselpunk:      { name: 'Dieselpunk',          description: 'WWI-era riveted industry with muted metal and smoke',           art: 'Dieselpunk Retro-Tech', design: 'Vintage',  colors: ['#0f0e0a', '#c9a02a', '#5a5040'] },
+    // Dark & Atmospheric
+    fantasy_epic:    { name: 'Fantasy Epic',        description: 'Grand magical vistas with heroic golden light',                 art: 'High-Fantasy Epic',     design: 'Modern',   colors: ['#0a1a2e', '#4a8fd4', '#d4a820'] },
+    gothic_dark:     { name: 'Gothic Dark',         description: 'Brooding cathedral shadows with candlelit melancholy',          art: 'Gothic Dark Art',       design: 'Neon',     colors: ['#080510', '#00ffcc', '#4a3060'] },
+    // Japanese Animation
+    anime_vivid:     { name: 'Anime Vivid',         description: 'Polished anime art with crisp linework and rich gradients',    art: 'High-Detail Anime',     design: 'Kawaii',   colors: ['#0a0820', '#ff6eb4', '#38bdf8'] },
+    // Professional Illustration
+    concept_art:     { name: 'AAA Concept Art',     description: 'Matte-painting precision with dramatic narrative mood',        art: 'AAA Concept Art',       design: 'Modern',   colors: ['#0a1520', '#38bdf8', '#c8922a'] },
   };
 
   // ── View router (exposed globally for onclick="showView(...)") ────────────
@@ -163,44 +163,60 @@ document.addEventListener('DOMContentLoaded', () => {
     lucide.createIcons();
   }
 
-  // ── Style selectors ──────────────────────────────────────────────────────
-  function buildVideoStyleGrid() {
-    const grid = get('videoStyleGrid');
+  // ── Unified theme selector ───────────────────────────────────────────────
+  function buildThemeGrid() {
+    const grid = get('themeGrid');
     if (!grid) return;
     grid.innerHTML = '';
-    Object.entries(VIDEO_STYLES).forEach(([key, cfg]) => {
-      const btn = document.createElement('button');
-      btn.className = `style-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-white/3 text-slate-400 ${selectedVideoStyle === key ? 'selected text-white' : ''}`;
-      btn.innerHTML = `<span class="inline-block w-1.5 h-1.5 rounded-full mr-1.5 align-middle" style="background:${cfg.dot}"></span>${cfg.name}`;
-      btn.addEventListener('click', () => {
-        selectedVideoStyle = key;
-        localStorage.setItem('animato_video_style', key);
-        buildVideoStyleGrid();
+    Object.entries(DESIGN_THEMES).forEach(([key, cfg]) => {
+      const isSelected = selectedTheme === key;
+      const card = document.createElement('button');
+      card.className = 'theme-card relative w-full text-left rounded-2xl p-3 transition-all';
+      card.style.cssText = isSelected
+        ? 'border:1px solid rgba(56,189,248,0.65);background:rgba(56,189,248,0.10);box-shadow:0 4px 24px rgba(56,189,248,0.08)'
+        : 'border:1px solid rgba(255,255,255,0.07);background:rgba(255,255,255,0.03)';
+
+      // Colour swatches
+      const swatches = cfg.colors.map(c =>
+        `<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${c};border:1px solid rgba(255,255,255,0.12);flex-shrink:0"></span>`
+      ).join('');
+
+      const checkMark = isSelected
+        ? `<span style="width:16px;height:16px;border-radius:50%;background:#38bdf8;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+             <i data-lucide="check" style="width:10px;height:10px;color:white"></i>
+           </span>`
+        : '';
+
+      card.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:5px">${swatches}</div>
+          ${checkMark}
+        </div>
+        <p style="font-size:12px;font-weight:900;color:#e2e8f0;margin:0 0 2px;line-height:1.3">${cfg.name}</p>
+        <p style="font-size:10px;color:#64748b;margin:0 0 8px;line-height:1.4">${cfg.description}</p>
+        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+          <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 6px;border-radius:4px;background:rgba(99,102,241,0.15);color:rgba(165,180,252,0.8)">${cfg.art}</span>
+          <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 6px;border-radius:4px;background:rgba(168,85,247,0.15);color:rgba(216,180,254,0.8)">${cfg.design}</span>
+        </div>
+      `;
+
+      card.addEventListener('mouseenter', () => {
+        if (!isSelected) card.style.background = 'rgba(255,255,255,0.06)';
       });
-      grid.appendChild(btn);
+      card.addEventListener('mouseleave', () => {
+        if (!isSelected) card.style.background = 'rgba(255,255,255,0.03)';
+      });
+      card.addEventListener('click', () => {
+        selectedTheme = key;
+        localStorage.setItem('animato_theme', key);
+        buildThemeGrid();
+      });
+      grid.appendChild(card);
     });
+    lucide.createIcons();
   }
 
-  function buildArtStyleGrid() {
-    const grid = get('artStyleGrid');
-    if (!grid) return;
-    grid.innerHTML = '';
-    Object.entries(ART_STYLES).forEach(([key, name]) => {
-      const btn = document.createElement('button');
-      btn.className = `style-btn px-2 py-1.5 rounded-lg text-[10px] font-bold bg-white/3 text-slate-500 text-center leading-tight ${selectedArtStyle === key ? 'selected !text-sky-300' : ''}`;
-      btn.textContent = name;
-      btn.title = name;
-      btn.addEventListener('click', () => {
-        selectedArtStyle = key;
-        localStorage.setItem('animato_art_style', key);
-        buildArtStyleGrid();
-      });
-      grid.appendChild(btn);
-    });
-  }
-
-  buildVideoStyleGrid();
-  buildArtStyleGrid();
+  buildThemeGrid();
 
   // ── Helpers ──────────────────────────────────────────────────────────────
   function escHtml(str) {
@@ -501,9 +517,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 3. Start pipeline
         const reset = get('forceReset')?.checked ?? false;
-        logLine(`Launching AI pipeline… art=${selectedArtStyle} theme=${selectedVideoStyle}`, 'system');
+        logLine(`Launching AI pipeline… theme=${selectedTheme}`, 'system');
         const gr = await fetch(
-          `/api/projects/${project_id}/generate?reset=${reset}&art_style=${selectedArtStyle}&video_style=${selectedVideoStyle}`,
+          `/api/projects/${project_id}/generate?reset=${reset}&theme=${selectedTheme}`,
           { method: 'POST' }
         );
         if (!gr.ok) {

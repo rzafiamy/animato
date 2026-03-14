@@ -67,6 +67,22 @@ async def index() -> str:
 # Project management
 # ──────────────────────────────────────────────────────────────────────────────
 
+@app.get("/api/themes")
+async def list_themes() -> Dict[str, Any]:
+    """Return all available design themes for the frontend."""
+    from .ai_providers import DESIGN_THEMES
+    return {
+        key: {
+            "name": t["name"],
+            "description": t["description"],
+            "art_style": t["art_style"],
+            "design_style": t["design_style"],
+            "preview_colors": t["preview_colors"],
+        }
+        for key, t in DESIGN_THEMES.items()
+    }
+
+
 @app.get("/api/projects")
 async def list_projects() -> List[Dict[str, Any]]:
     """List all projects with their status."""
@@ -149,6 +165,7 @@ async def generate(
     reset: bool = False,
     art_style: str = "photo",
     video_style: str = "modern",
+    theme: str = "",
 ) -> Dict[str, str]:
     if not project_dir(project_id).exists():
         raise HTTPException(404, "Project not found")
@@ -158,13 +175,23 @@ async def generate(
     if thread and thread.is_alive():
         raise HTTPException(409, "Pipeline already running for this project")
 
+    # Resolve unified design theme → art_style + video_style + palette_hint
+    palette_hint = ""
+    if theme:
+        from .ai_providers import DESIGN_THEMES
+        t = DESIGN_THEMES.get(theme, {})
+        if t:
+            art_style = t["art_style"]
+            video_style = t["design_style"]
+            palette_hint = t.get("palette_hint", "")
+
     # Persist style choices so the pipeline can read them
     from .storage import ensure_project_dirs as _epd
     _epd(project_id)
     settings_path = project_dir(project_id) / "output" / "settings.json"
     settings_path.parent.mkdir(parents=True, exist_ok=True)
     settings_path.write_text(
-        json.dumps({"art_style": art_style, "video_style": video_style}),
+        json.dumps({"art_style": art_style, "video_style": video_style, "palette_hint": palette_hint, "theme": theme}),
         encoding="utf-8",
     )
 

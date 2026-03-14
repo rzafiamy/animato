@@ -906,6 +906,7 @@ def run_project(project_id: str, reset: bool = False) -> None:
             pass
     art_style = settings.get("art_style", "photo")
     video_style = settings.get("video_style", "modern")
+    palette_hint = settings.get("palette_hint", "")
 
     # ── Find audio ─────────────────────────────────────────────────────────────
     audio_files = [f for f in paths["audio"].glob("*") if f.is_file()]
@@ -965,7 +966,7 @@ def run_project(project_id: str, reset: bool = False) -> None:
     gen_count = min(len(slides), MAX_IMAGES)
     write_status(project_id, {"state": "images", "progress": 60,
                               "message": f"Generating {gen_count} AI images ({art_style} style)…"})
-    _generate_images_concurrent(provider, slides, paths, project_id, art_style=art_style)
+    _generate_images_concurrent(provider, slides, paths, project_id, art_style=art_style, palette_hint=palette_hint)
     _save_storyboard(storyboard_path, slides)
 
     # ── Stage 5: Slide video rendering ────────────────────────────────────────
@@ -1046,6 +1047,7 @@ def _generate_images_concurrent(
     paths: Dict[str, Path],
     project_id: str,
     art_style: str = "photo",
+    palette_hint: str = "",
 ) -> None:
     """Generate AI images for the first MAX_IMAGES slides; remaining slides reuse earlier images."""
     gen_count = min(len(slides), MAX_IMAGES)
@@ -1078,7 +1080,7 @@ def _generate_images_concurrent(
         with semaphore:
             try:
                 ext = provider.generate_image(slide.image_prompt, image_base.with_suffix(".png"),
-                                              art_style=art_style)
+                                              art_style=art_style, palette_hint=palette_hint)
                 slide.image_ext = ext
             except Exception as exc:
                 errors.append(f"Slide {idx}: {exc}")

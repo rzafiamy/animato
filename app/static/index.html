@@ -93,10 +93,10 @@
     @keyframes card-enter { from{opacity:0;transform:translateY(14px) scale(0.97)} to{opacity:1;transform:none} }
     .card-enter { animation: card-enter 0.35s cubic-bezier(.2,.8,.4,1) both; }
 
-    /* Art/design style buttons */
-    .style-btn { transition: all 0.18s ease; border: 1px solid rgba(255,255,255,0.06); }
-    .style-btn:hover { border-color: rgba(56,189,248,0.4); transform: translateY(-1px); background: rgba(56,189,248,0.08); }
-    .style-btn.selected { border-color: rgba(56,189,248,0.7); background: rgba(56,189,248,0.14); box-shadow: 0 0 0 1px rgba(56,189,248,0.4); }
+    /* Design theme cards */
+    .theme-card { transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease; cursor: pointer; }
+    .theme-card:hover { transform: translateY(-1px); }
+    .theme-card:active { transform: scale(0.98); }
 
     /* Stage pulse ring */
     @keyframes ring-pulse { 0%{transform:scale(1);opacity:.7} 70%{transform:scale(1.6);opacity:0} 100%{transform:scale(1.6);opacity:0} }
@@ -341,22 +341,17 @@
           </button>
         </div>
 
-        <!-- Visual Style Selector -->
+        <!-- Design Theme Selector -->
         <div class="glass rounded-3xl p-6 border border-white/5">
-          <div class="flex items-center gap-2 mb-5">
-            <i data-lucide="palette" class="w-5 h-5 text-purple-400"></i>
-            <h3 class="font-outfit font-bold">Visual Style</h3>
+          <div class="flex items-center justify-between mb-1">
+            <div class="flex items-center gap-2">
+              <i data-lucide="palette" class="w-5 h-5 text-purple-400"></i>
+              <h3 class="font-outfit font-bold">Design Theme</h3>
+            </div>
+            <span class="text-[10px] font-bold uppercase tracking-widest text-slate-600">Art + Slide style unified</span>
           </div>
-
-          <!-- Design Theme (text overlay style) -->
-          <p class="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2.5">Design Theme</p>
-          <div id="videoStyleGrid" class="flex flex-wrap gap-2 mb-5">
-            <!-- populated by JS -->
-          </div>
-
-          <!-- Art Style (image generation style) -->
-          <p class="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2.5">Image Art Style</p>
-          <div id="artStyleGrid" class="grid grid-cols-3 gap-1.5 max-h-48 overflow-y-auto pr-0.5">
+          <p class="text-[11px] text-slate-600 mb-4">Each theme co-ordinates image art style and slide colour palette for visual coherence.</p>
+          <div id="themeGrid" class="grid grid-cols-1 gap-2 max-h-[420px] overflow-y-auto pr-0.5">
             <!-- populated by JS -->
           </div>
         </div>
