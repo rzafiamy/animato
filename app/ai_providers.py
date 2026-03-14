@@ -319,6 +319,9 @@ class OpenAIProvider(AIProvider):
                 f"You are a video storyboard director.\n"
                 f"Segment timing: {chunk_start_t:.1f}s → {chunk_end_t:.1f}s (duration ~{duration:.1f}s).\n"
                 f"Visual style reference for image_prompt: {style}\n\n"
+                "CRITICAL LANGUAGE RULE: Detect the language of the transcript below and write ALL title and bullets fields "
+                "in THAT SAME LANGUAGE. Do NOT translate. Do NOT switch to English. "
+                "The image_prompt field must always be in English (for image generation).\n\n"
                 "Return a JSON object {\"scenes\": [...]}. Each scene has these STRICTLY SEPARATE fields:\n\n"
                 "  - title: THE TOPIC/THEME of this section for the audience (e.g. 'Revenue Growth', 'Key Takeaways'). "
                 "Max 8 words. NEVER describe what an image looks like. NEVER use words like 'shows', 'depicts', 'features'.\n\n"
@@ -329,7 +332,7 @@ class OpenAIProvider(AIProvider):
                 "Structure: [main subject] + [setting] + [lighting] + [camera angle] + [materials] + [colour palette]. "
                 "Use cinematography terms: '35mm lens', 'f/2.8 bokeh', 'golden-hour side light', 'overhead drone', 'rim lighting'. "
                 "Specify materials: 'brushed aluminium', 'polished concrete', 'rough oak wood'. "
-                "NO text/letters/signs in the image. NO vague abstract words. MAXIMUM 100 words.\n\n"
+                "NO text/letters/signs in the image. NO vague abstract words. MAXIMUM 100 words. ALWAYS in English.\n\n"
                 f"  - duration: float seconds (all scenes must sum to ~{duration:.1f}s)\n"
                 f"  - start_time: float seconds from audio start (first scene: {chunk_start_t:.2f})\n\n"
                 "Transcript:\n" + text
@@ -339,7 +342,7 @@ class OpenAIProvider(AIProvider):
                 resp = self.client.chat.completions.create(
                     model=self.model,
                     messages=[
-                        {"role": "system", "content": "You are a visual director. Output ONLY valid JSON."},
+                        {"role": "system", "content": "You are a visual director. Output ONLY valid JSON. Write title and bullets in the same language as the transcript. image_prompt must always be in English."},
                         {"role": "user", "content": p},
                     ],
                     response_format={"type": "json_object"},

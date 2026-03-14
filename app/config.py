@@ -29,6 +29,7 @@ DALLE_QUALITY = os.getenv("DALLE_QUALITY", "standard")  # standard | hd
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "300"))
 MAX_RETRIES = int(os.getenv("MAX_RETRIES", "3"))
 CONCURRENT_IMAGES = int(os.getenv("CONCURRENT_IMAGES", "2"))
+CONCURRENT_RENDERS = int(os.getenv("CONCURRENT_RENDERS", "3"))
 MAX_IMAGES = int(os.getenv("MAX_IMAGES", "10"))  # max AI-generated images; extras reuse cycling
 
 # Slide visual settings

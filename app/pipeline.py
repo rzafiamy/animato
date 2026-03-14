@@ -30,6 +30,7 @@ from .ai_providers import PipelineError, Slide, get_provider
 from .config import (
     AUDIO_BITRATE,
     CONCURRENT_IMAGES,
+    CONCURRENT_RENDERS,
     FPS,
     FONT_BULLET_SIZE,
     FONT_TITLE_SIZE,
@@ -1123,26 +1124,25 @@ def _render_all_slides(
     project_id: str,
 ) -> List[Path]:
     gen_count = min(len(slides), MAX_IMAGES)
-    slide_videos: List[Path] = []
+    total = len(slides)
+    completed = [0]
+    errors: List[str] = []
+    semaphore = threading.Semaphore(CONCURRENT_RENDERS)
+    lock = threading.Lock()
 
-    for idx, slide in enumerate(slides, start=1):
+    # Pre-build output path list in order
+    slide_videos: List[Optional[Path]] = [None] * total
+
+    def _render_one(idx: int, slide: Slide) -> None:  # idx is 1-based
         video_path = paths["output"] / f"slide_{idx:02d}.mp4"
+
         if video_path.exists():
-            slide_videos.append(video_path)
-            continue
+            with lock:
+                slide_videos[idx - 1] = video_path
+                completed[0] += 1
+            return
 
-        write_status(
-            project_id,
-            {
-                "state": "render",
-                "progress": 75 + int((idx / len(slides)) * 20),
-                "message": f"Rendering slide {idx}/{len(slides)}: {slide.title[:30]}…",
-            },
-        )
-
-        # Slides beyond MAX_IMAGES reuse an earlier image (cycling)
         source_idx = idx if idx <= gen_count else ((idx - 1) % gen_count) + 1
-
         image_path: Optional[Path] = None
         for ext in (slide.image_ext, "png", "jpg", "jpeg"):
             candidate = paths["assets"] / f"slide_{source_idx:02d}.{ext}"
@@ -1150,18 +1150,42 @@ def _render_all_slides(
                 image_path = candidate
                 break
 
-        try:
-            if image_path and image_path.exists():
-                _render_slide_video(slide, image_path, video_path, idx)
-            else:
-                _render_fallback_slide(slide, video_path)
-        except PipelineError as exc:
-            print(f"[WARN] Slide {idx} render error: {exc}. Using fallback.")
+        with semaphore:
             try:
-                _render_fallback_slide(slide, video_path)
-            except Exception as e2:
-                raise PipelineError(f"Slide {idx} render failed entirely: {e2}")
+                if image_path and image_path.exists():
+                    _render_slide_video(slide, image_path, video_path, idx)
+                else:
+                    _render_fallback_slide(slide, video_path)
+            except PipelineError as exc:
+                errors.append(f"Slide {idx}: {exc}")
+                try:
+                    _render_fallback_slide(slide, video_path)
+                except Exception as e2:
+                    errors.append(f"Slide {idx} fallback failed: {e2}")
+                    return
 
-        slide_videos.append(video_path)
+        with lock:
+            slide_videos[idx - 1] = video_path
+            completed[0] += 1
+            write_status(
+                project_id,
+                {
+                    "state": "render",
+                    "progress": 75 + int((completed[0] / total) * 20),
+                    "message": f"Rendered {completed[0]}/{total} slides…",
+                },
+            )
 
-    return slide_videos
+    threads = [
+        threading.Thread(target=_render_one, args=(i, slide), daemon=True)
+        for i, slide in enumerate(slides, start=1)
+    ]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    if errors:
+        print(f"[WARN] Render errors: {errors}")
+
+    return [p for p in slide_videos if p is not None]
