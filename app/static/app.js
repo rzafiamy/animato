@@ -56,13 +56,22 @@ document.addEventListener('DOMContentLoaded', () => {
   let storyboardData  = [];
 
   // ── View router (exposed globally for onclick="showView(...)") ────────────
-  const VIEWS = ['landing', 'studio', 'projects'];
+  const VIEWS = ['home', 'studio', 'projects'];
 
   function showView(name) {
+    if (!VIEWS.includes(name)) name = 'home';
+    
+    // Update active class on views
     VIEWS.forEach(v => {
       const el = get(`view-${v}`);
       if (el) el.classList.toggle('active', v === name);
     });
+
+    // Update URL hash without triggering scroll if already there
+    if (window.location.hash !== `#${name}`) {
+      window.location.hash = name;
+    }
+
     if (name === 'projects') loadProjects();
     window.scrollTo(0, 0);
     lucide.createIcons();
@@ -70,9 +79,14 @@ document.addEventListener('DOMContentLoaded', () => {
   window.showView = showView;
 
   // Hash routing — persists on reload
-  function hashView() { return location.hash.replace('#', '') || 'landing'; }
-  window.addEventListener('hashchange', () => showView(hashView()));
-  showView(hashView()); // initial render from URL hash
+  function hashView() { return location.hash.replace('#', '') || 'home'; }
+  window.addEventListener('hashchange', () => {
+    const view = hashView();
+    showView(view);
+  });
+  
+  // Initial render
+  showView(hashView());
 
   // ── Pipeline stages initialisation ──────────────────────────────────────
   const STAGES = [
@@ -133,6 +147,56 @@ document.addEventListener('DOMContentLoaded', () => {
     logEl.innerHTML = '<div class="text-slate-700 flex items-center gap-1.5"><span>$</span> Log cleared.</div>';
   }
   window.clearLog = clearLog;
+
+  // ── Custom Modals ────────────────────────────────────────────────────────
+  const customModal = get('customModal');
+  const modalIcon   = get('modalIcon');
+  const modalTitle  = get('modalTitle');
+  const modalMsg    = get('modalMessage');
+  const modalConfirm= get('modalConfirmBtn');
+  const modalCancel = get('modalCancelBtn');
+
+  function showModal({ title, message, icon = 'info', confirmText = 'Confirm', cancelText = 'Cancel', showCancel = true }) {
+    return new Promise((resolve) => {
+      if (!customModal) return resolve(false);
+
+      modalTitle.textContent = title;
+      modalMsg.textContent   = message;
+      modalConfirm.textContent = confirmText;
+      modalCancel.textContent  = cancelText;
+      modalCancel.style.display = showCancel ? 'block' : 'none';
+      
+      const iconContainer = get('modalIconContainer');
+      if (iconContainer) {
+        iconContainer.innerHTML = `<i data-lucide="${icon}" class="w-8 h-8 text-sky-400"></i>`;
+        lucide.createIcons();
+      }
+
+      customModal.classList.remove('hidden');
+      setTimeout(() => customModal.classList.add('visible'), 10);
+
+      const cleanup = (val) => {
+        customModal.classList.remove('visible');
+        setTimeout(() => customModal.classList.add('hidden'), 300);
+        modalConfirm.removeEventListener('click', onConfirm);
+        modalCancel.removeEventListener('click', onCancel);
+        resolve(val);
+      };
+
+      const onConfirm = () => cleanup(true);
+      const onCancel  = () => cleanup(false);
+
+      modalConfirm.addEventListener('click', onConfirm);
+      modalCancel.addEventListener('click', onCancel);
+    });
+  }
+
+  // Override / Extend window functions (optional, but let's provide nice helpers)
+  window.animato = {
+    alert:   (msg, title = 'Notice') => showModal({ title, message: msg, showCancel: false, confirmText: 'OK' }),
+    confirm: (msg, title = 'Confirm Action') => showModal({ title, message: msg, icon: 'help-circle' }),
+    error:   (msg, title = 'Error')  => showModal({ title, message: msg, icon: 'alert-triangle', confirmText: 'I understand', showCancel: false })
+  };
 
   // ── Stage UI ─────────────────────────────────────────────────────────────
   const STAGE_ORDER = STAGES.map(s => s.key);
@@ -642,7 +706,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function deleteProject(pid, btn) {
-    if (!confirm('Delete this project permanently?')) return;
+    const ok = await window.animato.confirm('Are you sure you want to delete this project? This action cannot be undone.', 'Delete Project');
+    if (!ok) return;
     btn.disabled = true;
     try {
       await fetch(`/api/projects/${pid}`, { method: 'DELETE' });

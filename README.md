@@ -1,37 +1,99 @@
-# Animato Studio
+# 🎬 Animato Studio
 
-Animato Studio is a FastAPI + TailwindCSS + vanilla JS web app that turns an input audio file into a full HD podcast-style video with animated slides, titles, and visuals.
+[![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
+[![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
+[![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 
-## What it does
+**Animato Studio** is a high-performance, AI-driven video synthesis platform that transforms raw audio into cinematic Full HD videos. Leveraging state-of-the-art AI models for transcription, storyboarding, and visual generation, it creates perfectly synchronized content ready for social media, YouTube, or podcasts.
 
-- Upload audio
-- ASR -> script -> storyboard
-- Render slides and motion visuals into `final.mp4`
+---
 
-The default `mock` provider makes the pipeline runnable without external AI keys. If you have your own AI stack, switch to the `rest` provider and point it at your inference endpoints.
+## ✨ Key Features
 
-## Quickstart
+- 🎙️ **Neural ASR**: Whisper-grade transcription with millisecond-accurate SRT synchronization.
+- 🧠 **LLM Storyboarding**: GPT-powered scene planning that understands tone, pacing, and context.
+- 🎨 **Diffusion Visuals**: DALL-E 3 generated imagery tailored to every scene.
+- 🎞️ **Cinematic Rendering**: Ken Burns motion effects, dynamic text overlays, and professional mastering via FFmpeg.
+- 📂 **Project Management**: Persistent storage for all your creations.
+- 🛠️ **Modular AI Stack**: Easily swap between mock providers for testing or real AI endpoints for production.
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Python 3.10+**
+- **FFmpeg** (ensure it's in your system PATH)
+
+### Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/user/animato.git
+cd animato
+
+# Setup virtual environment
 python -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
+
+# Configure environment
 cp .env.example .env
+```
+
+### Running the App
+
+```bash
 uvicorn app.main:app --reload
 ```
 
-Open `http://localhost:8000`.
+Visit [http://localhost:8000](http://localhost:8000) to launch the studio.
 
-## REST provider contract
+---
 
-Set `PROVIDER=rest` and implement these endpoints in your AI service:
+## 🛠️ Configuration & AI Providers
 
-- `POST /asr` -> returns `{ "text": "..." }`
-- `POST /text` -> returns `{ "script": "..." }`
-- `POST /storyboard` -> returns `{ "slides": [{ "title": "", "bullets": [], "image_prompt": "", "duration": 6 }] }`
-- `POST /image` -> returns `{ "image_hex": "..." }` (hex-encoded PNG/JPG bytes)
+Animato is designed to be provider-agnostic. You can configure your AI stack in the `.env` file:
 
-## Notes
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `PROVIDER` | `mock` (no API keys needed) or `rest` | `mock` |
+| `BASE_URL` | Base URL for REST AI services | `http://localhost:8001` |
 
-- Rendering uses `ffmpeg`. Install it and ensure it is on your PATH.
-- Output artifacts live under `app/data/projects/<project_id>/output/`.
+### REST Provider Contract
+
+If using `PROVIDER=rest`, your service must implement:
+
+- `POST /asr` → `{ "text": "..." }`
+- `POST /text` → `{ "script": "..." }`
+- `POST /storyboard` → `{ "slides": [...] }`
+- `POST /image` → `{ "image_hex": "..." }`
+
+---
+
+## 📁 Project Structure
+
+```text
+├── app/
+│   ├── main.py          # FastAPI application entry recovery
+│   ├── pipeline.py      # Core AI orchestration logic
+│   ├── ai_providers.py  # Provider implementations (OpenAI, Anthropic, Mock)
+│   ├── static/          # Frontend (HTML, CSS, JS)
+│   └── data/            # Local storage for audio and rendered videos
+└── requirements.txt     # Python dependencies
+```
+
+---
+
+## 📜 License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+---
+
+<p align="center">
+  Built with ❤️ by the Animato Team
+</p>
