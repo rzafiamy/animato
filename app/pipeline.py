@@ -26,7 +26,7 @@ import threading
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from .ai_providers import PipelineError, Slide, get_provider
+from .ai_providers import DESIGN_THEMES, PipelineError, Slide, SLIDE_LAYOUTS, get_provider
 from .config import (
     AUDIO_BITRATE,
     CONCURRENT_IMAGES,
@@ -47,71 +47,117 @@ from .storage import ensure_project_dirs, write_status
 # ──────────────────────────────────────────────────────────────────────────────
 
 DESIGN_STYLES: Dict[str, dict] = {
+    # ── MODERN ─ clean dark-navy tint, bold sans, uppercase titles ───────────
     "modern": {
         "title_color": "white",
-        "bullet_color": "white",
+        "bullet_color": "0xe8f4ff",
         "accent": "0x38bdf8",
-        "title_shadow": "black@0.9",
-        "bullet_shadow": "black@0.8",
-        "sep_color": "0x38bdf8@0.9",
-        "sep_h": 3,
-        "bullet_char": "• ",
-        "title_scale": 1.0,
-        "overlay_top": "black@0.55",
-        "overlay_bot": "black@0.38",
+        "title_shadow": "0x000d1f@0.85",
+        "bullet_shadow": "0x000d1f@0.70",
+        "sep_color": "0x38bdf8@0.80",
+        "sep_h": 4,
+        "bullet_char": "› ",
+        "title_scale": 1.08,
+        "overlay_top": "0x000d1f@0.45",   # reduced opacity
+        "overlay_bot": "0x000a18@0.35",
+        "shadow_x": 3, "shadow_y": 3,
+        "title_uppercase": True,
+        "box": False,
+        "font_style": "bold_sans",
     },
+    # ── VINTAGE ─ deep sepia tint, serif font, gold ornaments ────────────────
     "vintage": {
         "title_color": "0xf5e6c8",
         "bullet_color": "0xe8d5a3",
         "accent": "0xc9a02a",
-        "title_shadow": "0x3d1500@0.9",
-        "bullet_shadow": "0x3d1500@0.8",
-        "sep_color": "0xc9a02a@0.85",
-        "sep_h": 2,
+        "title_shadow": "0x3d1500@0.85",
+        "bullet_shadow": "0x3d1500@0.70",
+        "sep_color": "0xc9a02a@0.80",
+        "sep_h": 5,
         "bullet_char": "◆ ",
-        "title_scale": 0.92,
-        "overlay_top": "0x1a0800@0.68",
-        "overlay_bot": "0x1a0800@0.50",
+        "title_scale": 0.96,
+        "overlay_top": "0x1a0800@0.55",   # reduced opacity
+        "overlay_bot": "0x1a0800@0.40",
+        "shadow_x": 4, "shadow_y": 4,
+        "title_uppercase": False,
+        "box": False,
+        "font_style": "serif",
     },
+    # ── KAWAII ─ deep magenta-purple tint, rounded font, big playful text ────
     "kawaii": {
         "title_color": "0xff6eb4",
         "bullet_color": "0xffffff",
         "accent": "0xffb6c1",
-        "title_shadow": "0x800040@0.8",
-        "bullet_shadow": "0x400020@0.7",
-        "sep_color": "0xffb6c1@0.9",
-        "sep_h": 4,
-        "bullet_char": "♥ ",
-        "title_scale": 1.05,
-        "overlay_top": "0x1a0030@0.58",
-        "overlay_bot": "0x0a0020@0.42",
+        "title_shadow": "0x800040@0.80",
+        "bullet_shadow": "0x400020@0.70",
+        "sep_color": "0xffb6c1@0.85",
+        "sep_h": 6,
+        "bullet_char": "• ",
+        "title_scale": 1.12,
+        "overlay_top": "0x1a0030@0.42",   # reduced opacity
+        "overlay_bot": "0x0a0020@0.30",
+        "shadow_x": 3, "shadow_y": 3,
+        "title_uppercase": False,
+        "box": False,
+        "font_style": "rounded",
     },
+    # ── NEON ─ very dark cyan tint, monospace, uppercase + glow box ──────────
     "neon": {
         "title_color": "0x00ffcc",
-        "bullet_color": "0xff00cc",
+        "bullet_color": "0xff44dd",
         "accent": "0x00ffcc",
         "title_shadow": "0x00ffcc@0.55",
-        "bullet_shadow": "0xff00cc@0.45",
-        "sep_color": "0x00ffcc@0.9",
+        "bullet_shadow": "0xff44dd@0.45",
+        "sep_color": "0x00ffcc@0.80",
         "sep_h": 2,
         "bullet_char": "▸ ",
-        "title_scale": 1.0,
-        "overlay_top": "black@0.80",
-        "overlay_bot": "black@0.65",
+        "title_scale": 1.02,
+        "overlay_top": "0x000a14@0.65",
+        "overlay_bot": "0x000a14@0.55",
+        "shadow_x": 2, "shadow_y": 2,
+        "title_uppercase": True,
+        "box": True,
+        "boxcolor": "0x00101a@0.55",       # more transparent box
+        "boxborderw": 12,
+        "font_style": "mono",
     },
+    # ── MINIMAL ─ barely-there overlay, light font, tiny text, no uppercase ──
     "minimal": {
         "title_color": "white",
-        "bullet_color": "0xbbbbbb",
+        "bullet_color": "0x94a3b8",
         "accent": "white",
-        "title_shadow": "black@0.4",
-        "bullet_shadow": "black@0.35",
-        "sep_color": "white@0.5",
+        "title_shadow": "black@0.22",
+        "bullet_shadow": "black@0.18",
+        "sep_color": "0xffffff@0.20",
         "sep_h": 1,
         "bullet_char": "– ",
-        "title_scale": 0.85,
-        "overlay_top": "black@0.28",
-        "overlay_bot": "black@0.20",
+        "title_scale": 0.78,
+        "overlay_top": "black@0.12",
+        "overlay_bot": "black@0.08",
+        "shadow_x": 1, "shadow_y": 1,
+        "title_uppercase": False,
+        "box": False,
+        "font_style": "light",
     },
+}
+
+# Per-style layout pools — theme-appropriate compositions
+STYLE_LAYOUT_POOLS: Dict[str, List[str]] = {
+    "modern":  ["hero", "lower_third", "split_right", "split_left", "top_banner",
+                "news_full", "dark_right", "magazine_bot", "reveal", "two_blocks",
+                "broadcast_tag", "floating_right", "cinematic", "card"],
+    "vintage": ["quote", "chapter", "card", "narrow_card", "hero",
+                "letterbox", "oversized", "ribbon", "vignette_all",
+                "minimal_bottom", "fullscreen_text", "floating_right"],
+    "kawaii":  ["card", "hero", "floating_right", "corner_tl", "corner_br",
+                "narrow_card", "vignette_all", "oversized", "two_blocks",
+                "top_banner", "ribbon", "title_center"],
+    "neon":    ["reveal", "dark_right", "news_full", "lower_third", "cinematic",
+                "broadcast_tag", "letterbox", "fullscreen_text", "stat",
+                "ribbon", "left_panel", "magazine_bot"],
+    "minimal": ["minimal_bottom", "chapter", "letterbox", "quote",
+                "stat", "narrow_card", "vignette_all", "oversized",
+                "fullscreen_text", "corner_tl", "lower_third"],
 }
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -125,21 +171,57 @@ def _ffmpeg_path() -> str:
     return p
 
 
-def _find_bold_font() -> Optional[str]:
-    """Locate a bold sans-serif font file on common Linux/macOS paths."""
-    candidates = [
+_FONT_PATHS: Dict[str, List[str]] = {
+    "bold_sans": [
+        "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
         "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
         "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
+        "/System/Library/Fonts/Helvetica.ttc",
+        "/Library/Fonts/Arial Bold.ttf",
+    ],
+    "serif": [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeSerifBold.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSerif-Bold.ttf",
+        "/usr/share/fonts/truetype/gentium/GentiumBookBasic-Bold.ttf",
+    ],
+    "rounded": [
         "/usr/share/fonts/truetype/ubuntu/Ubuntu-B.ttf",
         "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
-        "/System/Library/Fonts/Helvetica.ttc",  # macOS
-        "/Library/Fonts/Arial Bold.ttf",        # macOS
-    ]
-    for path in candidates:
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    ],
+    "mono": [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationMono-Bold.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansMono-Bold.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeMono.ttf",
+    ],
+    "light": [
+        "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+    ],
+}
+
+
+def _find_font(font_style: str = "bold_sans") -> Optional[str]:
+    """Return the first available font file for the requested style."""
+    for path in _FONT_PATHS.get(font_style, _FONT_PATHS["bold_sans"]):
+        if Path(path).exists():
+            return path
+    # Universal fallback — try any bold sans
+    for path in _FONT_PATHS["bold_sans"]:
         if Path(path).exists():
             return path
     return None
+
+
+def _find_bold_font() -> Optional[str]:
+    """Legacy alias kept for _render_fallback_slide."""
+    return _find_font("bold_sans")
 
 
 def _run_ffmpeg(args: List[str], cwd: Optional[Path] = None) -> None:
@@ -245,52 +327,91 @@ def _build_visual_filters(
     slide: Slide,
     style_cfg: dict,
     layout: str,
-    bold_font: Optional[str],
     pad_x: int,
     pad_y: int,
 ) -> str:
     """Build the FFmpeg filter chain segment (after zoompan) for all visual overlays."""
     W, H = VIDEO_WIDTH, VIDEO_HEIGHT
-    fs = style_cfg
-    font_spec = f"fontfile='{bold_font}':" if bold_font else ""
-    title_size = int(FONT_TITLE_SIZE * fs.get("title_scale", 1.0))
-    bul_size = FONT_BULLET_SIZE
-    line_h = bul_size + 14
+    
+    # Look up base design style config (modern, vintage, etc.)
+    design_style = style_cfg.get("design_style", "modern")
+    base_cfg = DESIGN_STYLES.get(design_style, DESIGN_STYLES["modern"])
+    
+    # Theme-specific overrides (passed in style_cfg)
+    title_color = style_cfg.get("title_color", base_cfg["title_color"])
+    bullet_color = style_cfg.get("bullet_color", base_cfg["bullet_color"])
+    accent = style_cfg.get("accent_color", base_cfg["accent"])
+    font_style = style_cfg.get("font_style", base_cfg["font_style"])
+    bullet_char = style_cfg.get("bullet_char", base_cfg["bullet_char"])
+    
+    # Ensure color format for FFmpeg (strip # and add 0x)
+    def _fmt_col(c: str) -> str:
+        if c.startswith("#"):
+            return "0x" + c[1:]
+        return c
 
-    title_esc = _escape_drawtext(slide.title)
+    title_color = _fmt_col(title_color)
+    bullet_color = _fmt_col(bullet_color)
+    accent = _fmt_col(accent)
+    
+    # Use the per-theme font
+    theme_font = _find_font(font_style)
+    font_spec = f"fontfile='{theme_font}':" if theme_font else ""
+
+    # Styling shortcuts
+    t_shadow = base_cfg["title_shadow"]
+    b_shadow = base_cfg["bullet_shadow"]
+    sep_col = _fmt_col(style_cfg.get("accent_color", base_cfg["sep_color"]))
+    if not sep_col.endswith("@") and "@" not in sep_col:
+        # Re-apply alpha if it was lost in override
+        orig_alpha = base_cfg["sep_color"].split("@")[-1] if "@" in base_cfg["sep_color"] else "0.95"
+        sep_col = f"{sep_col}@{orig_alpha}"
+    
+    sep_h = base_cfg.get("sep_h", 4)
+    sx, sy = base_cfg.get("shadow_x", 3), base_cfg.get("shadow_y", 3)
+    title_size = int(FONT_TITLE_SIZE * base_cfg.get("title_scale", 1.0))
+    bul_size = FONT_BULLET_SIZE
+    line_h = bul_size + 16
+    
+    # Title transformations
+    display_title = slide.title.upper() if base_cfg.get("title_uppercase") else slide.title
+    title_esc = _escape_drawtext(display_title)
     bullets = slide.bullets[:5]
+    
+    # Common box logic
+    box_enabled = base_cfg.get("box", False)
+    bc = base_cfg.get("boxcolor", "black@0.6")
+    bw = base_cfg.get("boxborderw", 10)
+    _box_title = f"box=1:boxcolor={bc}:boxborderw={bw}" if box_enabled else "box=0"
+    _box_bullet = f"box=1:boxcolor={bc}:boxborderw={max(4, bw - 4)}" if box_enabled else "box=0"
 
     parts: List[str] = []
 
-    def box(x, y, w, h, color: str) -> None:
-        parts.append(f"drawbox=x={x}:y={y}:width={w}:height={h}:color={color}:t=fill")
+    def box(x, y, w, h, color):
+        parts.append(f"drawbox=x={x}:y={y}:w={w}:h={h}:color={color}:t=fill")
 
-    def sep(x, y, w, h: Optional[int] = None) -> None:
-        sh = h if h is not None else fs["sep_h"]
-        parts.append(
-            f"drawbox=x={x}:y={y}:width={w}:height={sh}:color={fs['sep_color']}:t=fill"
-        )
+    def sep(x, y, w, h=None):
+        sh = h or sep_h
+        parts.append(f"drawbox=x={x}:y={y}:w={w}:h={sh}:color={sep_col}:t=fill")
 
-    def title(x_str, y_val: int, size: int, alpha: Optional[str] = None, y_expr: Optional[str] = None) -> None:
-        y_str = y_expr if y_expr else str(y_val)
+    def title(x, y, size, alpha=None, y_expr=None):
+        y_val = y_expr if y_expr else str(y)
         f = (
-            f"drawtext={font_spec}fontcolor={fs['title_color']}:fontsize={size}:"
-            f"x='{x_str}':y='{y_str}':"
-            f"text='{title_esc}':"
-            f"shadowcolor={fs['title_shadow']}:shadowx=3:shadowy=3:box=0"
+            f"drawtext={font_spec}text='{title_esc}':"
+            f"fontcolor={title_color}:fontsize={size}:"
+            f"x='{x}':y='{y_val}':shadowcolor={t_shadow}:shadowx={sx}:shadowy={sy}:{_box_title}"
         )
         if alpha:
             f += f":alpha='{alpha}'"
         parts.append(f)
 
-    def bullet(txt: str, x_str, y_val: int, size: int = 0, alpha: Optional[str] = None) -> None:
-        escaped = _escape_drawtext(f"{fs['bullet_char']}{txt}")
-        bsz = size if size else bul_size
+    def bullet(txt, x, y, size=None, alpha=None):
+        fsz = size or bul_size
+        escaped = _escape_drawtext(f"{bullet_char} {txt}")
         f = (
-            f"drawtext={font_spec}fontcolor={fs['bullet_color']}:fontsize={bsz}:"
-            f"x='{x_str}':y='{y_val}':"
-            f"text='{escaped}':"
-            f"shadowcolor={fs['bullet_shadow']}:shadowx=2:shadowy=2:box=0"
+            f"drawtext={font_spec}text='{escaped}':"
+            f"fontcolor={bullet_color}:fontsize={fsz}:"
+            f"x='{x}':y='{y}':shadowcolor={b_shadow}:shadowx={max(1, sx-1)}:shadowy={max(1, sy-1)}:{_box_bullet}"
         )
         if alpha:
             f += f":alpha='{alpha}'"
@@ -300,8 +421,9 @@ def _build_visual_filters(
 
     if layout == "hero":
         # Classic: title top-left with separator, bullets centre-left
-        box(0, 0, W, int(H * 0.45), fs["overlay_top"])
-        box(0, int(H * 0.55), W, H - int(H * 0.55), fs["overlay_bot"])
+        # Use more transparent boxes
+        box(0, 0, W, int(H * 0.45), base_cfg["overlay_top"])
+        box(0, int(H * 0.55), W, H - int(H * 0.55), base_cfg["overlay_bot"])
         sep_y = pad_y + title_size + 16
         sep(pad_x, sep_y, W - pad_x * 2)
         title(str(pad_x), pad_y, title_size,
@@ -314,25 +436,26 @@ def _build_visual_filters(
 
     elif layout == "lower_third":
         # News broadcast: strong bottom band, compact text at bottom
-        grad_y = int(H * 0.52)
-        box(0, grad_y, W, H - grad_y, "black@0.82")
-        title_y = int(H * 0.61)
+        grad_y = int(H * 0.58)  # shifted down
+        box(0, grad_y, W, H - grad_y, "black@0.65") # reduced alpha from 0.82
+        title_y = int(H * 0.65)
         # Short accent bar above title
-        sep(pad_x, title_y - 12, 80, fs["sep_h"] + 2)
+        sep(pad_x, title_y - 12, 80, sep_h + 2)
         title(str(pad_x), title_y, title_size,
               alpha=_fade_in(0.2, 0.7),
               y_expr=_slide_up_y(title_y, 0.2, 0.7, 14))
-        bul_y = int(H * 0.74)
+        bul_y = int(H * 0.76)
         for i, b in enumerate(bullets[:3]):
             bullet(b, str(pad_x), bul_y + i * line_h,
                    alpha=_fade_in(0.55 + i * 0.2, 0.55))
 
     elif layout == "cinematic":
         # Epic: vignette edges, large centered title, minimal text
-        box(0, 0, W, int(H * 0.18), "black@0.78")
-        box(0, int(H * 0.82), W, int(H * 0.18), "black@0.78")
+        # Use very subtle vignette-like boxes
+        box(0, 0, W, int(H * 0.18), "black@0.55")
+        box(0, int(H * 0.82), W, int(H * 0.18), "black@0.55")
         big_size = int(title_size * 1.28)
-        title_y = int(H * 0.37)
+        title_y = int(H * 0.40)
         title("(W-tw)/2", title_y, big_size,
               alpha=_fade_in(0.4, 1.1),
               y_expr=_slide_up_y(title_y, 0.4, 1.0, 28))
@@ -341,22 +464,22 @@ def _build_visual_filters(
             sub_esc = _escape_drawtext(bullets[0])
             sub_y = title_y + big_size + 28
             parts.append(
-                f"drawtext={font_spec}fontcolor={fs['bullet_color']}:fontsize={int(bul_size * 1.05)}:"
+                f"drawtext={font_spec}fontcolor={bullet_color}:fontsize={int(bul_size * 1.05)}:"
                 f"x='(W-tw)/2':y='{sub_y}':"
                 f"text='{sub_esc}':"
-                f"shadowcolor={fs['bullet_shadow']}:shadowx=2:shadowy=2:box=0"
+                f"shadowcolor={b_shadow}:shadowx=2:shadowy=2:box=0"
                 f":alpha='{_fade_in(1.2, 0.9)}'"
             )
 
     elif layout == "card":
         # Frosted card: dark box in centre, text inside
-        box(0, 0, W, H, "black@0.22")
-        card_x = pad_x - 24
-        card_y = int(H * 0.19)
-        card_w = W - (pad_x - 24) * 2
+        box(0, 0, W, H, "black@0.15") # reduced from 0.22
+        card_x = pad_x - 12
+        card_y = int(H * 0.22)
+        card_w = W - (pad_x - 12) * 2
         bul_count = min(len(bullets), 5)
-        card_h = max(title_size + 30 + bul_count * line_h + 40, int(H * 0.48))
-        box(card_x, card_y, card_w, card_h, "black@0.72")
+        card_h = max(title_size + 30 + bul_count * line_h + 40, int(H * 0.42))
+        box(card_x, card_y, card_w, card_h, "black@0.55") # reduced from 0.72
         inner_y = card_y + 28
         title(str(pad_x), inner_y, title_size,
               alpha=_fade_in(0.3, 0.8),
@@ -369,7 +492,7 @@ def _build_visual_filters(
 
     elif layout == "top_banner":
         # Dark top band, title and bullets in upper third
-        box(0, 0, W, int(H * 0.40), "black@0.80")
+        box(0, 0, W, int(H * 0.38), "black@0.55") # reduced from 0.80
         title(str(pad_x), pad_y, title_size,
               alpha=_fade_in(0.2, 0.7),
               y_expr=_slide_up_y(pad_y, 0.2, 0.7, 14))
@@ -381,31 +504,31 @@ def _build_visual_filters(
 
     elif layout == "split_right":
         # Dark right half, right-aligned text
-        box(int(W * 0.50), 0, int(W * 0.50), H, "black@0.78")
+        box(int(W * 0.55), 0, int(W * 0.45), H, "black@0.55") # shifted right and reduced alpha
         title_y = int(H * 0.20)
         title(f"W-tw-{pad_x}", title_y, title_size,
               alpha=_fade_in(0.3, 0.8))
-        sep_x = int(W * 0.52)
+        sep_x = int(W * 0.57)
         sep(sep_x, title_y + title_size + 10, W - sep_x - pad_x)
         bul_y = title_y + title_size + 30
         for i, b in enumerate(bullets[:4]):
-            escaped = _escape_drawtext(f"{fs['bullet_char']}{b}")
+            escaped = _escape_drawtext(f"{bullet_char} {b}")
             f = (
-                f"drawtext={font_spec}fontcolor={fs['bullet_color']}:fontsize={bul_size}:"
+                f"drawtext={font_spec}fontcolor={bullet_color}:fontsize={bul_size}:"
                 f"x='W-tw-{pad_x}':y='{bul_y + i * line_h}':"
                 f"text='{escaped}':"
-                f"shadowcolor={fs['bullet_shadow']}:shadowx=2:shadowy=2:box=0"
+                f"shadowcolor={b_shadow}:shadowx=2:shadowy=2:box=0"
                 f":alpha='{_fade_in(0.7 + i * 0.22, 0.55)}'"
             )
             parts.append(f)
 
     elif layout == "quote":
         # Full-screen overlay, single huge centred title + thin decorative lines
-        box(0, 0, W, H, "black@0.42")
+        box(0, 0, W, H, "black@0.32") # reduced from 0.42
         big_size = int(title_size * 1.38)
-        title_y = int(H * 0.36)
+        title_y = int(H * 0.38)
         # Decorative horizontal rules
-        sep(pad_x, int(H * 0.33), W - pad_x * 2, 1)
+        sep(pad_x, int(H * 0.35), W - pad_x * 2, 1)
         title("(W-tw)/2", title_y, big_size,
               alpha=_fade_in(0.5, 1.2),
               y_expr=_slide_up_y(title_y, 0.5, 1.0, 32))
@@ -415,20 +538,20 @@ def _build_visual_filters(
             attr_esc = _escape_drawtext(bullets[0])
             attr_y = title_y + big_size + 46
             parts.append(
-                f"drawtext={font_spec}fontcolor={fs['bullet_color']}:fontsize={int(bul_size * 0.82)}:"
+                f"drawtext={font_spec}fontcolor={bullet_color}:fontsize={int(bul_size * 0.82)}:"
                 f"x='(W-tw)/2':y='{attr_y}':"
                 f"text='{attr_esc}':"
-                f"shadowcolor={fs['bullet_shadow']}:shadowx=1:shadowy=1:box=0"
+                f"shadowcolor={b_shadow}:shadowx=1:shadowy=1:box=0"
                 f":alpha='{_fade_in(1.5, 0.7)}'"
             )
 
     elif layout == "minimal_bottom":
         # Breathe: thin bottom gradient, small title, image dominates
-        bot_y = int(H * 0.77)
-        box(0, bot_y, W, H - bot_y, "black@0.68")
+        bot_y = int(H * 0.82) # shifted down
+        box(0, bot_y, W, H - bot_y, "black@0.55") # reduced alpha from 0.68
         sep(pad_x, bot_y + 8, 55)  # short accent tick
         sm_title = int(title_size * 0.78)
-        title_y = int(H * 0.81)
+        title_y = int(H * 0.84)
         title(str(pad_x), title_y, sm_title,
               alpha=_fade_in(0.3, 0.8),
               y_expr=_slide_up_y(title_y, 0.3, 0.8, 10))
@@ -441,22 +564,22 @@ def _build_visual_filters(
 
     elif layout == "split_left":
         # Mirror of split_right: dark left half, left-aligned text
-        box(0, 0, int(W * 0.50), H, "black@0.78")
+        box(0, 0, int(W * 0.45), H, "black@0.55") # reduced size and alpha
         title_y = int(H * 0.20)
         title(str(pad_x), title_y, title_size, alpha=_fade_in(0.3, 0.8))
-        sep(pad_x, title_y + title_size + 10, int(W * 0.44) - pad_x)
+        sep(pad_x, title_y + title_size + 10, int(W * 0.40) - pad_x)
         bul_y = title_y + title_size + 30
         for i, b in enumerate(bullets[:4]):
             bullet(b, str(pad_x), bul_y + i * line_h, alpha=_fade_in(0.7 + i * 0.22, 0.55))
 
     elif layout == "vignette_all":
         # Dark vignette on all 4 edges, centered text
-        vig_h, vig_w = int(H * 0.22), int(W * 0.15)
-        box(0, 0, W, vig_h, "black@0.72")
-        box(0, H - vig_h, W, vig_h, "black@0.72")
-        box(0, 0, vig_w, H, "black@0.60")
-        box(W - vig_w, 0, vig_w, H, "black@0.60")
-        title_y = int(H * 0.40)
+        vig_h, vig_w = int(H * 0.20), int(W * 0.12)
+        box(0, 0, W, vig_h, "black@0.55")
+        box(0, H - vig_h, W, vig_h, "black@0.55")
+        box(0, 0, vig_w, H, "black@0.45")
+        box(W - vig_w, 0, vig_w, H, "black@0.45")
+        title_y = int(H * 0.42)
         title("(W-tw)/2", title_y, title_size,
               alpha=_fade_in(0.4, 1.0), y_expr=_slide_up_y(title_y, 0.4, 0.9, 22))
         bul_y = title_y + title_size + 22
@@ -465,9 +588,9 @@ def _build_visual_filters(
 
     elif layout == "oversized":
         # Giant 1.6× title, subtle global overlay
-        box(0, 0, W, H, "black@0.25")
+        box(0, 0, W, H, "black@0.15") # reduced from 0.25
         big = int(title_size * 1.60)
-        title_y = int(H * 0.32)
+        title_y = int(H * 0.35) # shifted down
         title("(W-tw)/2", title_y, big,
               alpha=_fade_in(0.3, 1.1), y_expr=_slide_up_y(title_y, 0.3, 1.0, 35))
         sep(pad_x, title_y + big + 18, W - pad_x * 2, 1)
@@ -477,8 +600,8 @@ def _build_visual_filters(
 
     elif layout == "ribbon":
         # Horizontal dark band across mid-screen, text inside
-        rib_y, rib_h = int(H * 0.38), int(H * 0.26)
-        box(0, rib_y, W, rib_h, "black@0.85")
+        rib_y, rib_h = int(H * 0.40), int(H * 0.22) # smaller ribbon
+        box(0, rib_y, W, rib_h, "black@0.65") # reduced from 0.85
         title_y = rib_y + 18
         title("(W-tw)/2", title_y, title_size,
               alpha=_fade_in(0.3, 0.8), y_expr=_slide_up_y(title_y, 0.3, 0.8, 14))
@@ -490,9 +613,9 @@ def _build_visual_filters(
 
     elif layout == "news_full":
         # Wide deep bottom band (full newscast style)
-        grad_y = int(H * 0.48)
-        box(0, grad_y, W, H - grad_y, "black@0.90")
-        sep(0, grad_y, W, fs["sep_h"] + 2)
+        grad_y = int(H * 0.55) # shifted down
+        box(0, grad_y, W, H - grad_y, "black@0.65") # reduced from 0.90
+        sep(0, grad_y, W, sep_h + 2)
         title_y = grad_y + 22
         title(str(pad_x), title_y, title_size,
               alpha=_fade_in(0.2, 0.7), y_expr=_slide_up_y(title_y, 0.2, 0.7, 14))
@@ -501,9 +624,9 @@ def _build_visual_filters(
             bullet(b, str(pad_x), bul_y + i * line_h, alpha=_fade_in(0.55 + i * 0.18, 0.50))
 
     elif layout == "left_panel":
-        # Narrow dark left panel (38%), text inside
-        panel_w = int(W * 0.38)
-        box(0, 0, panel_w, H, "black@0.82")
+        # Narrow dark left panel (35%), text inside
+        panel_w = int(W * 0.35) # reduced from 38%
+        box(0, 0, panel_w, H, "black@0.65") # reduced from 0.82
         sm = int(title_size * 0.88)
         title_y = int(H * 0.25)
         title(str(pad_x), title_y, sm,
@@ -516,13 +639,13 @@ def _build_visual_filters(
 
     elif layout == "floating_right":
         # Floating dark box at right side, text inside
-        box(0, 0, W, H, "black@0.18")
-        fx = int(W * 0.54)
-        fy = int(H * 0.22)
-        fw = int(W * 0.42)
+        box(0, 0, W, H, "black@0.12")
+        fx = int(W * 0.58) # shifted right
+        fy = int(H * 0.25) # shifted down
+        fw = int(W * 0.38)
         bul_count = min(len(bullets), 5)
-        fh = max(title_size + 30 + bul_count * line_h + 36, int(H * 0.50))
-        box(fx, fy, fw, fh, "black@0.78")
+        fh = max(title_size + 30 + bul_count * line_h + 36, int(H * 0.45))
+        box(fx, fy, fw, fh, "black@0.65") # reduced from 0.78
         ix, iy = fx + 24, fy + 22
         sm = int(title_size * 0.88)
         title(str(ix), iy, sm, alpha=_fade_in(0.3, 0.8), y_expr=_slide_up_y(iy, 0.3, 0.8, 12))
@@ -534,27 +657,27 @@ def _build_visual_filters(
 
     elif layout == "letterbox":
         # Cinema letterbox: solid black bars top + bottom
-        bar_h = int(H * 0.12)
-        box(0, 0, W, bar_h, "black@1.0")
-        box(0, H - bar_h, W, bar_h, "black@1.0")
-        box(0, H - bar_h * 3, W, bar_h * 2, "black@0.58")
+        bar_h = int(H * 0.10) # reduced from 12%
+        box(0, 0, W, bar_h, "black@0.90") # reduced from 1.0
+        box(0, H - bar_h, W, bar_h, "black@0.90")
+        box(0, H - bar_h * 3, W, bar_h * 2, "black@0.45") # reduced from 0.58
         title_y = H - bar_h + max(4, int(bar_h * 0.18))
         title("(W-tw)/2", title_y, int(title_size * 0.72), alpha=_fade_in(0.4, 0.8))
         if bullets:
             sub_esc = _escape_drawtext(bullets[0])
             parts.append(
-                f"drawtext={font_spec}fontcolor={fs['bullet_color']}:fontsize={int(bul_size * 0.65)}:"
+                f"drawtext={font_spec}fontcolor={bullet_color}:fontsize={int(bul_size * 0.65)}:"
                 f"x='(W-tw)/2':y='{int(bar_h * 0.28)}':"
                 f"text='{sub_esc}':"
-                f"shadowcolor={fs['bullet_shadow']}:shadowx=1:shadowy=1:box=0"
+                f"shadowcolor={b_shadow}:shadowx=1:shadowy=1:box=0"
                 f":alpha='{_fade_in(0.6, 0.7)}'"
             )
 
     elif layout == "chapter":
         # Elegant chapter marker: thin rules + large centered title
-        box(0, 0, W, H, "black@0.32")
+        box(0, 0, W, H, "black@0.25") # reduced from 0.32
         big = int(title_size * 1.18)
-        title_y = int(H * 0.40)
+        title_y = int(H * 0.42)
         sep(int(W * 0.20), title_y - 18, int(W * 0.60), 1)
         title("(W-tw)/2", title_y, big,
               alpha=_fade_in(0.4, 1.0), y_expr=_slide_up_y(title_y, 0.4, 1.0, 20))
@@ -566,46 +689,46 @@ def _build_visual_filters(
 
     elif layout == "stat":
         # Statistics focus: small title + HUGE first bullet (for numbers/percentages)
-        box(0, 0, W, int(H * 0.30), "black@0.72")
-        box(0, int(H * 0.78), W, int(H * 0.22), "black@0.55")
+        box(0, 0, W, int(H * 0.28), "black@0.55") # reduced from 0.72
+        box(0, int(H * 0.80), W, int(H * 0.20), "black@0.45") # reduced from 0.55
         title(str(pad_x), pad_y, int(title_size * 0.58), alpha=_fade_in(0.2, 0.6))
         if bullets:
             huge = int(title_size * 1.90)
             stat_esc = _escape_drawtext(bullets[0])
             parts.append(
-                f"drawtext={font_spec}fontcolor={fs['title_color']}:fontsize={huge}:"
-                f"x='(W-tw)/2':y='{int(H * 0.28)}':"
+                f"drawtext={font_spec}fontcolor={title_color}:fontsize={huge}:"
+                f"x='(W-tw)/2':y='{int(H * 0.30)}':"
                 f"text='{stat_esc}':"
-                f"shadowcolor={fs['title_shadow']}:shadowx=5:shadowy=5:box=0"
+                f"shadowcolor={t_shadow}:shadowx=5:shadowy=5:box=0"
                 f":alpha='{_fade_in(0.5, 1.1)}'"
             )
             sm_bul = int(bul_size * 0.80)
             for i, b in enumerate(bullets[1:4]):
-                bullet(b, str(pad_x), int(H * 0.80) + i * (sm_bul + 10),
+                bullet(b, str(pad_x), int(H * 0.82) + i * (sm_bul + 10),
                        size=sm_bul, alpha=_fade_in(1.3 + i * 0.20, 0.50))
 
     elif layout == "broadcast_tag":
         # News chyron: info tag at very bottom
-        tag_h = int(H * 0.15)
-        tag_y = H - tag_h
-        box(0, tag_y, W, tag_h, "black@0.90")
-        sep(0, tag_y, W, fs["sep_h"])
+        tag_h = int(H * 0.12) # reduced from 15%
+        tag_y = H - tag_h - 10 # slightly off the bottom edge
+        box(0, tag_y, W, tag_h, "black@0.65") # reduced from 0.90
+        sep(0, tag_y, W, sep_h)
         title(str(pad_x), tag_y + int(tag_h * 0.18), int(title_size * 0.65),
               alpha=_fade_in(0.2, 0.7))
         if bullets:
-            txt = _escape_drawtext(f"{fs['bullet_char']}{bullets[0]}")
+            txt = _escape_drawtext(f"{bullet_char} {bullets[0]}")
             parts.append(
-                f"drawtext={font_spec}fontcolor={fs['bullet_color']}:fontsize={int(bul_size * 0.62)}:"
+                f"drawtext={font_spec}fontcolor={bullet_color}:fontsize={int(bul_size * 0.62)}:"
                 f"x='{pad_x}':y='{tag_y + int(tag_h * 0.60)}':"
                 f"text='{txt}':"
-                f"shadowcolor={fs['bullet_shadow']}:shadowx=1:shadowy=1:box=0"
+                f"shadowcolor={b_shadow}:shadowx=1:shadowy=1:box=0"
                 f":alpha='{_fade_in(0.5, 0.6)}'"
             )
 
     elif layout == "corner_tl":
         # Compact info block in top-left corner
         sm = int(title_size * 0.80)
-        box(0, 0, int(W * 0.42), int(H * 0.42), "black@0.78")
+        box(0, 0, int(W * 0.40), int(H * 0.38), "black@0.55") # reduced size and alpha
         title_y = pad_y
         title(str(pad_x), title_y, sm,
               alpha=_fade_in(0.3, 0.8), y_expr=_slide_up_y(title_y, 0.3, 0.8, 12))
@@ -617,8 +740,8 @@ def _build_visual_filters(
 
     elif layout == "corner_br":
         # Info block at bottom-right corner
-        cw, ch = int(W * 0.44), int(H * 0.44)
-        box(W - cw, H - ch, cw, ch, "black@0.80")
+        cw, ch = int(W * 0.42), int(H * 0.38) # reduced from 44%
+        box(W - cw, H - ch, cw, ch, "black@0.55") # reduced from 0.80
         cp = pad_x
         sm = int(title_size * 0.80)
         title_y = H - ch + 24
@@ -626,21 +749,21 @@ def _build_visual_filters(
         sep(W - cw + cp, title_y + sm + 8, cw - cp * 2)
         bul_y = title_y + sm + 26
         for i, b in enumerate(bullets[:3]):
-            esc = _escape_drawtext(f"{fs['bullet_char']}{b}")
+            esc = _escape_drawtext(f"{bullet_char} {b}")
             parts.append(
-                f"drawtext={font_spec}fontcolor={fs['bullet_color']}:fontsize={int(bul_size * 0.78)}:"
+                f"drawtext={font_spec}fontcolor={bullet_color}:fontsize={int(bul_size * 0.78)}:"
                 f"x='W-tw-{cp}':y='{bul_y + i * line_h}':"
                 f"text='{esc}':"
-                f"shadowcolor={fs['bullet_shadow']}:shadowx=2:shadowy=2:box=0"
+                f"shadowcolor={b_shadow}:shadowx=2:shadowy=2:box=0"
                 f":alpha='{_fade_in(0.6 + i * 0.20, 0.50)}'"
             )
 
     elif layout == "title_center":
         # Title horizontally centered, left-aligned bullets below
-        box(0, 0, W, H, "black@0.28")
-        box(0, 0, W, int(H * 0.44), "black@0.32")
+        box(0, 0, W, H, "black@0.15") # reduced from 0.28
+        box(0, 0, W, int(H * 0.38), "black@0.22") # reduced from 0.32
         big = int(title_size * 1.10)
-        title_y = int(H * 0.18)
+        title_y = int(H * 0.20)
         title("(W-tw)/2", title_y, big,
               alpha=_fade_in(0.3, 0.9), y_expr=_slide_up_y(title_y, 0.3, 0.9, 20))
         sep(pad_x, title_y + big + 14, W - pad_x * 2)
@@ -649,9 +772,9 @@ def _build_visual_filters(
             bullet(b, str(pad_x), bul_y + i * line_h, alpha=_fade_in(0.7 + i * 0.22, 0.55))
 
     elif layout == "dark_right":
-        # Heavy dark right 55%, text in that section
-        box(int(W * 0.45), 0, int(W * 0.55), H, "black@0.82")
-        rp = int(W * 0.47)
+        # Heavy dark right 50%, text in that section
+        box(int(W * 0.50), 0, int(W * 0.50), H, "black@0.65") # shifted and reduced
+        rp = int(W * 0.52)
         sm = int(title_size * 0.92)
         title_y = int(H * 0.22)
         title(str(rp), title_y, sm,
@@ -664,9 +787,9 @@ def _build_visual_filters(
 
     elif layout == "magazine_bot":
         # Large bold title at very bottom, full width
-        bot_h = int(H * 0.28)
-        box(0, H - bot_h, W, bot_h, "black@0.80")
-        sep(0, H - bot_h, W, fs["sep_h"])
+        bot_h = int(H * 0.25) # reduced from 28%
+        box(0, H - bot_h, W, bot_h, "black@0.65") # reduced from 0.80
+        sep(0, H - bot_h, W, sep_h)
         big = int(title_size * 1.15)
         title_y = H - bot_h + 18
         title("(W-tw)/2", title_y, big,
@@ -678,9 +801,9 @@ def _build_visual_filters(
 
     elif layout == "reveal":
         # Strong reveal gradient from bottom, text in gradient zone
-        box(0, int(H * 0.45), W, int(H * 0.20), "black@0.55")
-        box(0, int(H * 0.65), W, int(H * 0.35), "black@0.88")
-        title_y = int(H * 0.67)
+        box(0, int(H * 0.50), W, int(H * 0.20), "black@0.35") # reduced alpha and size
+        box(0, int(H * 0.70), W, int(H * 0.30), "black@0.65")
+        title_y = int(H * 0.72)
         title(str(pad_x), title_y, title_size,
               alpha=_fade_in(0.3, 0.8), y_expr=_slide_up_y(title_y, 0.3, 0.8, 18))
         sep(pad_x, title_y + title_size + 10, W - pad_x * 2)
@@ -690,24 +813,24 @@ def _build_visual_filters(
 
     elif layout == "two_blocks":
         # Title top-left block + bullets bottom-right block (separated)
-        box(0, 0, int(W * 0.55), int(H * 0.36), "black@0.78")
-        box(int(W * 0.45), int(H * 0.60), int(W * 0.55), int(H * 0.40), "black@0.80")
+        box(0, 0, int(W * 0.50), int(H * 0.32), "black@0.55") # reduced from 0.78
+        box(int(W * 0.50), int(H * 0.65), int(W * 0.50), int(H * 0.35), "black@0.55") # reduced from 0.80
         title(str(pad_x), pad_y, title_size,
               alpha=_fade_in(0.2, 0.8), y_expr=_slide_up_y(pad_y, 0.2, 0.8, 16))
-        sep(pad_x, pad_y + title_size + 10, int(W * 0.48))
-        rp = int(W * 0.48)
-        bul_y = int(H * 0.63)
+        sep(pad_x, pad_y + title_size + 10, int(W * 0.44))
+        rp = int(W * 0.53)
+        bul_y = int(H * 0.68)
         for i, b in enumerate(bullets[:4]):
             bullet(b, str(rp), bul_y + i * line_h, alpha=_fade_in(0.7 + i * 0.22, 0.55))
 
     elif layout == "narrow_card":
         # Narrow centered card (portrait orientation)
-        box(0, 0, W, H, "black@0.28")
-        cw = int(W * 0.46)
+        box(0, 0, W, H, "black@0.15") # reduced from 0.28
+        cw = int(W * 0.42)
         cx = (W - cw) // 2
-        ch = int(H * 0.70)
+        ch = int(H * 0.65)
         cy = (H - ch) // 2
-        box(cx, cy, cw, ch, "black@0.78")
+        box(cx, cy, cw, ch, "black@0.65") # reduced from 0.78
         ix, iy = cx + 28, cy + 30
         sm = int(title_size * 0.88)
         title(str(ix), iy, sm, alpha=_fade_in(0.3, 0.8), y_expr=_slide_up_y(iy, 0.3, 0.8, 12))
@@ -719,10 +842,10 @@ def _build_visual_filters(
 
     elif layout == "fullscreen_text":
         # Heavy dark overlay, all text centered
-        box(0, 0, W, H, "black@0.72")
+        box(0, 0, W, H, "black@0.55") # reduced from 0.72
         big = int(title_size * 1.12)
-        title_y = int(H * 0.28)
-        sep(pad_x, int(H * 0.24), W - pad_x * 2, 1)
+        title_y = int(H * 0.32)
+        sep(pad_x, int(H * 0.28), W - pad_x * 2, 1)
         title("(W-tw)/2", title_y, big,
               alpha=_fade_in(0.3, 0.9), y_expr=_slide_up_y(title_y, 0.3, 0.9, 22))
         sep(pad_x, title_y + big + 18, W - pad_x * 2, 1)
@@ -755,15 +878,17 @@ def _render_slide_video(
 
     zoom_expr, x_expr, y_expr = _ken_burns_exprs(slide_idx)
 
-    style_name = getattr(slide, "style", "modern")
-    style_cfg = DESIGN_STYLES.get(style_name, DESIGN_STYLES["modern"])
+    style_cfg = getattr(slide, "theme_cfg", {})
+    if not style_cfg:
+        style_name = getattr(slide, "style", "modern")
+        style_cfg = DESIGN_STYLES.get(style_name, DESIGN_STYLES["modern"])
+    
     layout = getattr(slide, "layout", "hero")
 
     pad_y = int(VIDEO_HEIGHT * SLIDE_PADDING)
     pad_x = int(VIDEO_WIDTH * 0.06)
-    bold_font = _find_bold_font()
 
-    visual = _build_visual_filters(slide, style_cfg, layout, bold_font, pad_x, pad_y)
+    visual = _build_visual_filters(slide, style_cfg, layout, pad_x, pad_y)
 
     zoom_w = int(VIDEO_WIDTH * 1.5)
     zoom_h = int(VIDEO_HEIGHT * 1.5)
@@ -797,29 +922,24 @@ def _render_fallback_slide(slide: Slide, out_path: Path) -> None:
     """Create a solid-colour slide (no image) as emergency fallback."""
     ffmpeg = _ffmpeg_path()
     duration = max(4.0, slide.duration)
+    
+    style_cfg = getattr(slide, "theme_cfg", {})
+    if not style_cfg:
+        style_name = getattr(slide, "style", "modern")
+        style_cfg = DESIGN_STYLES.get(style_name, DESIGN_STYLES["modern"])
+    
+    layout = getattr(slide, "layout", "hero")
+    pad_y = int(VIDEO_HEIGHT * SLIDE_PADDING)
     pad_x = int(VIDEO_WIDTH * 0.06)
-    pad_y = int(VIDEO_HEIGHT * 0.12)
-    title_esc = _escape_drawtext(slide.title)
 
-    title_filter = (
-        f"drawtext=fontcolor=white:fontsize={FONT_TITLE_SIZE}:"
-        f"x={pad_x}:y={pad_y}:text='{title_esc}':"
-        f"shadowcolor=black:shadowx=2:shadowy=2"
-    )
-    bullet_filters: List[str] = []
-    line_h = FONT_BULLET_SIZE + 14
-    y0 = int(VIDEO_HEIGHT * 0.52)
-    for bi, b in enumerate(slide.bullets[:5]):
-        txt = _escape_drawtext(f"• {b}")
-        bullet_filters.append(
-            f"drawtext=fontcolor=white:fontsize={FONT_BULLET_SIZE}:"
-            f"x={pad_x}:y={y0 + bi * line_h}:text='{txt}':"
-            f"shadowcolor=black:shadowx=2:shadowy=2"
-        )
+    visual = _build_visual_filters(slide, style_cfg, layout, pad_x, pad_y)
+    
+    # Use a dark tinted background based on theme if possible, otherwise default navy
+    bg_color = style_cfg.get("preview_colors", ["0x0f172a"])[0]
+    if bg_color.startswith("#"):
+        bg_color = "0x" + bg_color[1:]
 
-    vf = f"color=c=0x0f172a:s={VIDEO_WIDTH}x{VIDEO_HEIGHT},{title_filter}"
-    for bf in bullet_filters:
-        vf += f",{bf}"
+    vf = f"color=c={bg_color}:s={VIDEO_WIDTH}x{VIDEO_HEIGHT},{visual}"
 
     _run_ffmpeg([
         ffmpeg, "-y",
@@ -904,9 +1024,13 @@ def run_project(project_id: str, reset: bool = False) -> None:
             settings = json.loads(settings_path.read_text(encoding="utf-8"))
         except Exception:
             pass
-    art_style = settings.get("art_style", "photo")
-    video_style = settings.get("video_style", "modern")
-    palette_hint = settings.get("palette_hint", "")
+    
+    theme_id = settings.get("theme", "cinematic_pro")
+    theme_cfg = DESIGN_THEMES.get(theme_id, DESIGN_THEMES["cinematic_pro"])
+    
+    art_style = theme_cfg.get("art_style", "photo")
+    video_style = theme_cfg.get("design_style", "modern")
+    palette_hint = theme_cfg.get("palette_hint", "")
 
     # ── Find audio ─────────────────────────────────────────────────────────────
     audio_files = [f for f in paths["audio"].glob("*") if f.is_file()]
@@ -953,9 +1077,16 @@ def run_project(project_id: str, reset: bool = False) -> None:
             raise PipelineError("AI produced an empty storyboard.")
         _save_storyboard(storyboard_path, slides)
 
-    # ── Apply project video_style to all slides ────────────────────────────────
-    for slide in slides:
+    # ── Apply project video_style + theme-preferred layouts to all slides ────────
+    pool = STYLE_LAYOUT_POOLS.get(video_style, list(SLIDE_LAYOUTS))
+    for i, slide in enumerate(slides):
         slide.style = video_style
+        slide.theme_cfg = theme_cfg  # Attach full theme config for rendering
+        # Reassign layout from the theme's preferred pool
+        if slide.bullets:
+            slide.layout = pool[i % len(pool)]
+        else:
+            slide.layout = "cinematic" if i % 2 == 0 else "quote"
 
     # ── Adjust durations to match actual audio length ─────────────────────────
     if audio_duration > 0 and slides:
