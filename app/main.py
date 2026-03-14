@@ -59,18 +59,18 @@ async def upload_audio(project_id: str, file: UploadFile = File(...)) -> Dict[st
 
 
 @app.post("/api/projects/{project_id}/generate")
-async def generate(project_id: str, background: BackgroundTasks) -> Dict[str, str]:
+async def generate(project_id: str, background: BackgroundTasks, reset: bool = False) -> Dict[str, str]:
     if not project_dir(project_id).exists():
         raise HTTPException(status_code=404, detail="Project not found")
 
     write_status(project_id, {"state": "queued", "progress": 0, "message": "Queued"})
-    background.add_task(_run_pipeline, project_id)
+    background.add_task(_run_pipeline, project_id, reset)
     return {"status": "started"}
 
 
-def _run_pipeline(project_id: str) -> None:
+def _run_pipeline(project_id: str, reset: bool) -> None:
     try:
-        run_project(project_id)
+        run_project(project_id, reset=reset)
     except PipelineError as exc:
         write_status(
             project_id,
@@ -81,6 +81,7 @@ def _run_pipeline(project_id: str) -> None:
             project_id,
             {"state": "failed", "progress": 0, "message": f"Error: {exc}"},
         )
+
 
 
 @app.get("/api/projects/{project_id}/status")

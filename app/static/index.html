@@ -1,155 +1,362 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Animato Studio</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animato Studio | AI Video Playground</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
-      rel="stylesheet"
-    />
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="icon" href="data:,">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
     <style>
-      :root {
-        --ink: #f9fafb;
-        --ink-muted: #cbd5f5;
-        --bg-1: #0f172a;
-        --bg-2: #1e1b4b;
-        --accent: #60a5fa;
-        --accent-2: #22d3ee;
-      }
-      body {
-        font-family: "Space Grotesk", sans-serif;
-        color: var(--ink);
-        background: radial-gradient(circle at top left, #1e293b 0%, transparent 45%),
-          radial-gradient(circle at 40% 20%, #1e1b4b 0%, transparent 45%),
-          linear-gradient(120deg, var(--bg-1), var(--bg-2));
-        min-height: 100vh;
-      }
-      .glass {
-        background: rgba(15, 23, 42, 0.65);
-        border: 1px solid rgba(148, 163, 184, 0.2);
-        backdrop-filter: blur(12px);
-      }
-      .scanline {
-        background-image: linear-gradient(
-          rgba(255, 255, 255, 0.05) 1px,
-          transparent 1px
-        );
-        background-size: 100% 6px;
-      }
-      .pulse-dot {
-        box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.8);
-        animation: pulse 2s infinite;
-      }
-      @keyframes pulse {
-        0% {
-          box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.7);
+        :root {
+            --glass: rgba(15, 23, 42, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.08);
         }
-        70% {
-          box-shadow: 0 0 0 12px rgba(34, 211, 238, 0);
+        .font-inter { font-family: 'Inter', sans-serif; }
+        .font-outfit { font-family: 'Outfit', sans-serif; }
+        .glass-panel {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
         }
-        100% {
-          box-shadow: 0 0 0 0 rgba(34, 211, 238, 0);
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        .btn-primary {
+            background: #fff;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-      }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px -10px rgba(56, 189, 248, 0.5);
+        }
+        @keyframes subtle-float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .float-anim { animation: subtle-float 6s ease-in-out infinite; }
     </style>
-  </head>
-  <body class="scanline">
-    <div class="max-w-6xl mx-auto px-6 py-10">
-      <header class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p class="text-sm uppercase tracking-[0.3em] text-cyan-200">Animato Studio</p>
-          <h1 class="text-4xl md:text-5xl font-semibold leading-tight">
-            Turn audio into a cinematic podcast video in minutes.
-          </h1>
-          <p class="text-lg text-slate-200 max-w-2xl mt-4">
-            Upload your audio, let the AI build a script, storyboard, and visuals, then render a
-            full HD video with motion slides, text overlays, and rich imagery.
-          </p>
-        </div>
-        <div class="glass rounded-2xl p-6 w-full md:w-80">
-          <div class="flex items-center gap-3">
-            <div class="h-3 w-3 rounded-full bg-cyan-300 pulse-dot"></div>
-            <p class="font-medium">Pipeline status</p>
+</head>
+<body class="bg-slate-950 text-slate-200 font-inter selection:bg-sky-500/30 overflow-x-hidden">
+    <!-- View: Landing Page -->
+    <div id="landing-view" class="min-h-screen relative">
+      <div class="container mx-auto px-6 py-8">
+        <!-- Brand Nav -->
+        <nav class="flex items-center justify-between mb-20 animate-in fade-in slide-in-from-top-4 duration-700">
+          <div class="flex items-center gap-2 group cursor-pointer">
+            <div class="p-2 bg-sky-500/10 rounded-xl border border-sky-500/20 group-hover:bg-sky-500/20 transition-all">
+              <i data-lucide="sparkles" class="w-6 h-6 text-sky-400"></i>
+            </div>
+            <span class="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-indigo-400">
+              ANIMATO<span class="text-white">STUDIO</span>
+            </span>
           </div>
-          <p id="statusText" class="text-slate-200 mt-2">Waiting for upload.</p>
-          <div class="mt-4 h-2 bg-slate-800 rounded-full overflow-hidden">
-            <div
-              id="progressBar"
-              class="h-full bg-gradient-to-r from-sky-400 to-cyan-300"
-              style="width: 0%"
-            ></div>
+          <button onclick="showView('playground')" class="group flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-slate-800 hover:border-slate-700 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all">
+            Open Playground <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500 group-hover:text-white group-hover:translate-x-0.5 transition-all"></i>
+          </button>
+        </nav>
+
+        <!-- Hero -->
+        <header class="max-w-4xl mx-auto text-center mb-32 pt-10">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-bold uppercase tracking-widest mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
+            </span>
+            Neural Video Generation v2.0
+          </div>
+          <h1 class="text-6xl md:text-8xl font-bold font-outfit tracking-tight text-white mb-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+            From audio to <br/>
+            <span class="bg-clip-text text-transparent bg-gradient-to-r from-sky-400 via-indigo-400 to-purple-500">Cinematic Masterpieces.</span>
+          </h1>
+          <p class="text-xl text-slate-400 leading-relaxed mb-12 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-12 duration-700">
+            The world's first AI-powered studio that transforms voiceovers into high-fidelity video presentations using custom LLMs and diffusion models.
+          </p>
+          <div class="flex items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-16 duration-700">
+            <button onclick="showView('playground')" class="px-10 py-5 bg-white text-slate-950 font-bold rounded-2xl hover:scale-105 transition-all shadow-xl shadow-white/10 active:scale-95">
+              Launch Playground
+            </button>
+            <button class="px-10 py-5 bg-slate-900 border border-slate-800 text-white font-bold rounded-2xl hover:bg-slate-800 transition-all">
+              Watch Demo
+            </button>
+          </div>
+        </header>
+
+        <!-- Features Grid -->
+        <section class="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-32 relative z-10">
+          <div class="glass-panel p-10 rounded-3xl border border-white/5 hover:border-sky-500/30 transition-all group">
+            <div class="w-12 h-12 bg-sky-500/10 rounded-2xl flex items-center justify-center mb-6 border border-sky-500/20 group-hover:bg-sky-500/20">
+              <i data-lucide="mic-2" class="w-6 h-6 text-sky-400"></i>
+            </div>
+            <h3 class="text-xl font-bold mb-4 font-outfit">Neural ASR</h3>
+            <p class="text-slate-400 leading-relaxed">High-fidelity transcription with timestamped SRT support for perfect visual synchronization.</p>
+          </div>
+          <div class="glass-panel p-10 rounded-3xl border border-white/5 hover:border-indigo-500/30 transition-all group">
+            <div class="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center mb-6 border border-indigo-500/20 group-hover:bg-indigo-500/20">
+              <i data-lucide="brain-circuit" class="w-6 h-6 text-indigo-400"></i>
+            </div>
+            <h3 class="text-xl font-bold mb-4 font-outfit">LLM Storyboarding</h3>
+            <p class="text-slate-400 leading-relaxed">Advanced models analyze your tone and content to draft a compelling visual narrative automatically.</p>
+          </div>
+          <div class="glass-panel p-10 rounded-3xl border border-white/5 hover:border-purple-500/30 transition-all group">
+            <div class="w-12 h-12 bg-purple-500/10 rounded-2xl flex items-center justify-center mb-6 border border-purple-500/20 group-hover:bg-purple-500/20">
+              <i data-lucide="layers" class="w-6 h-6 text-purple-400"></i>
+            </div>
+            <h3 class="text-xl font-bold mb-4 font-outfit">Multi-Stage Rendering</h3>
+            <p class="text-slate-400 leading-relaxed">Combining diffusion backgrounds with motion graphics to create professional 1080p output.</p>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- View: Playground (Studio) -->
+    <div id="playground-view" class="hidden min-h-screen bg-[#07090e] transition-opacity duration-500 opacity-0 overflow-x-hidden">
+      <!-- Header -->
+      <header class="border-b border-white/5 bg-slate-950/50 backdrop-blur-xl sticky top-0 z-50">
+        <div class="max-w-[1700px] mx-auto px-6 py-4 flex items-center justify-between">
+          <div class="flex items-center gap-4">
+            <button onclick="showView('landing')" class="p-2 hover:bg-white/5 rounded-lg transition-colors text-slate-500 hover:text-white">
+              <i data-lucide="arrow-left" class="w-5 h-5"></i>
+            </button>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] font-black tracking-[0.2em] text-slate-600 uppercase">Neural Playground</span>
+              <div class="w-1 h-1 rounded-full bg-slate-800"></div>
+              <span class="text-sm font-bold text-slate-300" id="currentProjectLabel">Project Master</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+             <div id="statusBadge" class="px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-[10px] font-bold tracking-widest uppercase text-slate-500">Idle</div>
           </div>
         </div>
       </header>
 
-      <section class="grid md:grid-cols-3 gap-6 mt-10">
-        <div class="glass rounded-2xl p-6">
-          <p class="text-sm text-cyan-200 uppercase tracking-wide">1. Upload</p>
-          <h2 class="text-xl font-semibold mt-2">Bring your voice</h2>
-          <p class="text-slate-200 mt-2">
-            Drop an audio file. We analyze and transcribe it into a structured script.
-          </p>
-        </div>
-        <div class="glass rounded-2xl p-6">
-          <p class="text-sm text-cyan-200 uppercase tracking-wide">2. Generate</p>
-          <h2 class="text-xl font-semibold mt-2">AI storyboard</h2>
-          <p class="text-slate-200 mt-2">
-            Slides, motion beats, and visual prompts are crafted to keep the audience engaged.
-          </p>
-        </div>
-        <div class="glass rounded-2xl p-6">
-          <p class="text-sm text-cyan-200 uppercase tracking-wide">3. Render</p>
-          <h2 class="text-xl font-semibold mt-2">Full HD export</h2>
-          <p class="text-slate-200 mt-2">
-            Your final video merges audio, text, and visuals into a shareable podcast format.
-          </p>
-        </div>
-      </section>
-
-      <section class="glass rounded-3xl p-8 mt-10">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-          <div>
-            <h3 class="text-2xl font-semibold">Create a new video</h3>
-            <p class="text-slate-200 mt-2">
-              Supported formats: MP3, WAV, M4A. Keep files under 200MB by default.
-            </p>
-          </div>
-          <div class="flex gap-3">
-            <label class="px-5 py-3 rounded-xl bg-cyan-500 text-slate-900 font-semibold cursor-pointer">
+      <main class="max-w-[1700px] mx-auto px-6 py-8">
+        <div class="grid lg:grid-cols-12 gap-8 items-start">
+          
+          <!-- LEFT: WORKSPACE & CONTROLS -->
+          <div class="lg:col-span-4 space-y-6">
+            <!-- Upload Card -->
+            <div class="glass-panel rounded-3xl p-6 border border-white/5 overflow-hidden relative shadow-2xl">
+              <div class="absolute -top-10 -right-10 opacity-5 pointer-events-none">
+                <i data-lucide="upload-cloud" class="w-40 h-40"></i>
+              </div>
+              <h3 class="text-lg font-bold mb-6 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="layout-template" class="w-5 h-5 text-sky-400"></i>
+                    Input Forge
+                </div>
+                <div class="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></div>
+              </h3>
+              
+              <div id="dropZone" class="group relative flex flex-col items-center justify-center py-14 px-6 border-2 border-dashed border-slate-800 rounded-3xl hover:border-sky-500/50 hover:bg-sky-500/5 transition-all cursor-pointer">
+                <div class="pointer-events-none w-16 h-16 bg-slate-900 rounded-3xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-xl">
+                  <i data-lucide="mic" class="w-8 h-8 text-sky-500 transition-colors"></i>
+                </div>
+                <p id="fileName" class="text-sm font-bold text-slate-400 group-hover:text-slate-200 transition-colors text-center pointer-events-none">
+                  Feed the Audio Engine
+                </p>
+                <p class="text-[10px] text-slate-600 mt-2 uppercase tracking-widest font-black pointer-events-none">200MB Max Limit</p>
+              </div>
               <input id="audioInput" type="file" class="hidden" accept="audio/*" />
-              Select audio
-            </label>
-            <button
-              id="generateBtn"
-              class="px-5 py-3 rounded-xl border border-cyan-400 text-cyan-100 font-semibold"
-            >
-              Generate video
-            </button>
+
+              <div class="mt-6 p-4 rounded-2xl bg-white/5 border border-white/5">
+                <label class="flex items-center gap-4 cursor-pointer group">
+                  <div class="relative w-10 h-6 bg-slate-800 rounded-full p-1 transition-colors group-hover:bg-slate-700">
+                    <input type="checkbox" id="forceReset" class="sr-only peer">
+                    <div class="absolute left-1 top-1 w-4 h-4 bg-slate-400 rounded-full transition-all peer-checked:left-5 peer-checked:bg-sky-500"></div>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-xs font-bold text-slate-400 group-hover:text-slate-200">Force Deep Reset</span>
+                    <span class="text-[9px] text-slate-600">Flush cache for next run</span>
+                  </div>
+                </label>
+              </div>
+
+              <button id="generateBtn" disabled class="w-full mt-6 bg-white text-slate-950 font-black py-5 rounded-2xl transition-all flex items-center justify-center gap-3 shadow-2xl disabled:opacity-20 disabled:cursor-not-allowed hover:bg-sky-400 active:scale-95 text-sm uppercase tracking-wider">
+                <i data-lucide="zap" class="w-5 h-5 fill-current"></i>
+                Start Neural Rendering
+              </button>
+            </div>
+
+            <!-- Error Reporting Alert -->
+            <div id="errorAlert" class="hidden animate-in zoom-in-95 fade-in duration-300">
+              <div class="p-6 rounded-3xl bg-rose-500/10 border border-rose-500/20 flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2 text-rose-400 font-black text-[10px] uppercase tracking-[0.2em]">
+                       <i data-lucide="shield-alert" class="w-4 h-4"></i>
+                       System Fault detected
+                    </div>
+                    <button onclick="document.getElementById('errorAlert').classList.add('hidden')" class="hover:bg-rose-500/20 p-1 rounded-lg transition-colors">
+                        <i data-lucide="x" class="w-4 h-4 text-rose-400"></i>
+                    </button>
+                </div>
+                <p id="errorMessage" class="text-sm text-rose-200/70 font-medium leading-relaxed font-mono italic"></p>
+                <div class="flex gap-2">
+                    <button onclick="location.reload()" class="px-4 py-2 bg-rose-500/20 text-rose-400 rounded-xl text-[10px] font-black uppercase hover:bg-rose-500/30 transition-all">Reboot Engine</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dashboard Modules (Terminal) -->
+            <div class="glass-panel rounded-3xl p-6 border border-white/5 relative">
+              <h4 class="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] mb-4 flex items-center justify-between">
+                Production Terminal
+                <span class="flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-20"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500/40"></span>
+                </span>
+              </h4>
+              <div id="log" class="h-64 overflow-y-auto space-y-3 font-mono text-[11px] scrollbar-hide">
+                <div class="flex items-center gap-2 opacity-30">
+                  <i data-lucide="hash" class="w-3 h-3"></i>
+                  <span>System standby. Initialize workspace.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT: PREVIEW & PROGRESS -->
+          <div class="lg:col-span-8 space-y-8">
+            <!-- Main Preview Display -->
+            <div class="glass-panel aspect-video rounded-[3rem] border border-white/5 overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.8)] relative group bg-black ring-1 ring-white/10">
+              <div id="videoPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center z-10">
+                <div class="relative float-anim">
+                  <div class="absolute inset-x-0 bottom-0 aspect-square bg-sky-500/20 blur-[100px] rounded-full"></div>
+                  <div class="w-32 h-32 bg-slate-900 border border-white/5 rounded-[2rem] flex items-center justify-center relative z-10 shadow-3xl">
+                    <i data-lucide="play-circle" class="w-16 h-16 text-slate-800"></i>
+                  </div>
+                </div>
+                <div class="mt-12 text-center">
+                  <h3 class="text-2xl font-black text-white mb-2 tracking-tight uppercase">Master Visualizer</h3>
+                  <p class="text-sm text-slate-500 max-w-sm px-10">Awaiting production signal to stream neural frames.</p>
+                </div>
+              </div>
+              
+              <video id="videoPlayer" class="hidden w-full h-full object-contain" controls></video>
+              
+              <!-- Video Floating Actions -->
+              <div id="videoControls" class="hidden absolute top-8 right-8 flex items-center gap-4 z-20">
+                <button title="Download Master File" class="w-12 h-12 flex items-center justify-center bg-white/5 hover:bg-sky-500 backdrop-blur-3xl rounded-2xl border border-white/10 transition-all text-white hover:text-slate-950 active:scale-90 shadow-2xl">
+                  <i data-lucide="download" class="w-5 h-5"></i>
+                </button>
+                <button title="Export Project" class="w-12 h-12 flex items-center justify-center bg-white/5 hover:bg-white/20 backdrop-blur-3xl rounded-2xl border border-white/10 transition-all text-white active:scale-90 shadow-2xl">
+                  <i data-lucide="external-link" class="w-5 h-5"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Dashboard Stats -->
+            <div class="flex flex-col gap-6">
+              <!-- Overall Status -->
+              <div class="glass-panel rounded-[2rem] p-8 border border-white/5 relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-8 flex flex-col items-end">
+                   <span class="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1">Compute Core</span>
+                   <span id="progressPercent" class="text-4xl font-black font-outfit text-white">0%</span>
+                </div>
+
+                <div class="max-w-md">
+                    <h3 id="statusText" class="text-lg font-bold text-slate-200 mb-6">Awaiting Input...</h3>
+                    <div class="h-3 w-full bg-slate-900 rounded-full overflow-hidden mb-8 border border-white/5">
+                        <div id="progressBar" class="h-full bg-sky-500 w-0 transition-all duration-700 shadow-[0_0_30px_rgba(56,189,248,0.4)]"></div>
+                    </div>
+
+                    <div class="flex items-center gap-10">
+                        <div id="asrStep" class="flex flex-col gap-2 transition-all duration-700 opacity-20">
+                            <span class="text-[10px] font-black text-sky-500 uppercase tracking-widest">Stage 1</span>
+                            <span class="text-sm font-bold text-slate-400">Audio Synth</span>
+                        </div>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-800"></i>
+                        <div id="renderStep" class="flex flex-col gap-2 transition-all duration-700 opacity-20">
+                            <span class="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Stage 2</span>
+                            <span class="text-sm font-bold text-slate-400">Neural Render</span>
+                        </div>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-800"></i>
+                        <div id="doneStep" class="flex flex-col gap-2 transition-all duration-700 opacity-20">
+                            <span class="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Final</span>
+                            <span class="text-sm font-bold text-slate-400">Production</span>
+                        </div>
+                    </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Playground Meta -->
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="p-8 rounded-[2rem] bg-slate-900/50 border border-white/5 group hover:border-sky-500/20 transition-all">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="w-12 h-12 bg-sky-500/10 rounded-2xl flex items-center justify-center border border-sky-500/20">
+                            <i data-lucide="zap" class="w-6 h-6 text-sky-400"></i>
+                        </div>
+                        <h4 class="text-lg font-bold">Turbo Mode Active</h4>
+                    </div>
+                    <p class="text-[13px] text-slate-500 leading-relaxed">Neural cache is fully optimized. Consecutive runs with the same audio will render near-instantly.</p>
+                </div>
+                <div class="p-8 rounded-[2rem] bg-slate-900/50 border border-white/5 group hover:border-indigo-500/20 transition-all">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center border border-indigo-500/20">
+                            <i data-lucide="shield-check" class="w-6 h-6 text-indigo-400"></i>
+                        </div>
+                        <h4 class="text-lg font-bold">Auto-Recovery On</h4>
+                    </div>
+                    <p class="text-[13px] text-slate-500 leading-relaxed">System automatically detects AI hallucinatory errors and attempts cinematic fallbacks.</p>
+                </div>
+            </div>
           </div>
         </div>
-        <div class="mt-6 flex flex-col gap-3">
-          <p class="text-sm text-slate-300">Selected file:</p>
-          <p id="fileName" class="text-slate-100">None</p>
-        </div>
-      </section>
+      </main>
 
-      <section class="grid md:grid-cols-2 gap-6 mt-10">
-        <div class="glass rounded-3xl p-8">
-          <h3 class="text-2xl font-semibold">Live log</h3>
-          <div id="log" class="mt-4 space-y-2 text-sm text-slate-200"></div>
-        </div>
-        <div class="glass rounded-3xl p-8">
-          <h3 class="text-2xl font-semibold">Preview</h3>
-          <p class="text-slate-200 mt-2">Your generated video will appear here.</p>
-          <video id="videoPlayer" class="mt-4 w-full rounded-2xl" controls></video>
-        </div>
-      </section>
+      <!-- Credits Footer -->
+      <footer class="mt-20 py-10 border-t border-white/5 text-center">
+         <p class="text-[10px] font-black text-slate-600 uppercase tracking-[0.5em]">&copy; 2024 Animato Studio // Neural Playground Edition</p>
+      </footer>
+    </div>
+
+    <!-- Background Decoration -->
+    <div class="fixed inset-0 pointer-events-none z-[-1] overflow-hidden">
+      <div class="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] bg-sky-500/5 blur-[150px] rounded-full"></div>
+      <div class="absolute -bottom-[20%] -right-[10%] w-[60%] h-[60%] bg-indigo-500/5 blur-[180px] rounded-full"></div>
     </div>
 
     <script src="/static/app.js"></script>
-  </body>
+    <script>
+      lucide.createIcons();
+
+      function updateUIForView(view) {
+        const landing = document.getElementById('landing-view');
+        const playground = document.getElementById('playground-view');
+        
+        if (view === 'playground') {
+          landing.classList.add('hidden');
+          playground.classList.remove('hidden');
+          setTimeout(() => playground.classList.add('opacity-100'), 50);
+          document.body.style.backgroundColor = '#07090e';
+        } else {
+          playground.classList.remove('opacity-100');
+          setTimeout(() => {
+            playground.classList.add('hidden');
+            landing.classList.remove('hidden');
+          }, 500);
+          document.body.style.backgroundColor = '#020617';
+        }
+        window.scrollTo(0, 0);
+      }
+
+      function showView(view) {
+        location.hash = view;
+      }
+
+      window.addEventListener('hashchange', () => {
+        const view = location.hash.replace('#', '') || 'landing';
+        updateUIForView(view);
+      });
+
+      // Initial load
+      window.addEventListener('DOMContentLoaded', () => {
+        const view = location.hash.replace('#', '') || 'landing';
+        updateUIForView(view);
+      });
+    </script>
+</body>
 </html>
