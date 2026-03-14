@@ -195,11 +195,9 @@ async def generate(
         encoding="utf-8",
     )
 
-    write_status(project_id, {"state": "queued", "progress": 0, "message": "Queued for processing"})
-
     t = threading.Thread(
         target=_run_pipeline_bg,
-        args=(project_id, reset),
+        args=(project_id, reset, False),
         daemon=True,
         name=f"pipeline-{project_id[:8]}",
     )
@@ -207,10 +205,48 @@ async def generate(
     return {"status": "started"}
 
 
-def _run_pipeline_bg(project_id: str, reset: bool) -> None:
+@app.post("/api/projects/{project_id}/continue")
+async def continue_pipeline(project_id: str) -> Dict[str, str]:
+    if not project_dir(project_id).exists():
+        raise HTTPException(404, "Project not found")
+
+    thread = _active_pipelines.get(project_id)
+    if thread and thread.is_alive():
+        raise HTTPException(409, "Pipeline already running")
+
+    write_status(project_id, {"state": "queued", "progress": 15, "message": "Resuming pipeline…"})
+
+    t = threading.Thread(
+        target=_run_pipeline_bg,
+        args=(project_id, False, True), # reset=False, skip_asr=True
+        daemon=True,
+        name=f"pipeline-cont-{project_id[:8]}",
+    )
+    t.start()
+    return {"status": "continued"}
+
+
+@app.patch("/api/projects/{project_id}/transcript")
+async def update_transcript(project_id: str, data: Dict[str, str]) -> Dict[str, str]:
+    path = project_dir(project_id) / "output" / "transcript.srt"
+    if not path.exists():
+        # Even if it doesn't exist, we might want to create it if the dir exists
+        if not project_dir(project_id).exists():
+            raise HTTPException(404, "Project not found")
+        path.parent.mkdir(parents=True, exist_ok=True)
+    
+    new_text = data.get("transcript")
+    if new_text is None:
+        raise HTTPException(400, "Missing 'transcript' field")
+    
+    path.write_text(new_text, encoding="utf-8")
+    return {"status": "updated"}
+
+
+def _run_pipeline_bg(project_id: str, reset: bool, skip_asr: bool = False) -> None:
     _active_pipelines[project_id] = threading.current_thread()
     try:
-        run_project(project_id, reset=reset)
+        run_project(project_id, reset=reset, skip_asr=skip_asr)
     except PipelineError as exc:
         write_status(project_id, {"state": "failed", "progress": 0,
                                   "message": f"Pipeline error: {exc}"})
@@ -243,7 +279,7 @@ async def stream_status(project_id: str, request: Request) -> StreamingResponse:
             if current_json != last_json:
                 last_json = current_json
                 yield f"data: {current_json}\n\n"
-            if status.get("state") in ("done", "failed"):
+            if status.get("state") in ("done", "failed", "review_asr"):
                 break
             await asyncio.sleep(0.5)
 

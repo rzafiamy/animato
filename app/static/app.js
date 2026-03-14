@@ -94,12 +94,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Pipeline stages initialisation ──────────────────────────────────────
   const STAGES = [
-    { key: 'asr',        label: 'ASR Transcription',  icon: 'activity',       color: 'text-sky-400'    },
-    { key: 'script',     label: 'Scene Planning',      icon: 'layout-list',    color: 'text-indigo-400' },
-    { key: 'storyboard', label: 'Storyboard',          icon: 'film',           color: 'text-violet-400' },
-    { key: 'images',     label: 'Image Generation',    icon: 'image',          color: 'text-rose-400'   },
-    { key: 'render',     label: 'Video Rendering',     icon: 'clapperboard',   color: 'text-amber-400'  },
-    { key: 'done',       label: 'Production Complete', icon: 'check-circle-2', color: 'text-emerald-400'},
+    { key: 'asr',        label: 'Transcription',    icon: 'mic',            color: 'text-sky-400'    },
+    { key: 'review_asr', label: 'Review Required',  icon: 'message-square', color: 'text-sky-300'    },
+    { key: 'script',     label: 'Scene Planning',   icon: 'layout-list',    color: 'text-indigo-400' },
+    { key: 'storyboard', label: 'Storyboard',       icon: 'film',           color: 'text-violet-400' },
+    { key: 'images',     label: 'Image Generation', icon: 'image',          color: 'text-rose-400'   },
+    { key: 'render',     label: 'Video Rendering',  icon: 'clapperboard',   color: 'text-amber-400'  },
+    { key: 'done',       label: 'Complete',         icon: 'check-circle-2', color: 'text-emerald-400'},
   ];
 
   if (stagesList) {
@@ -329,6 +330,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (data.state) activateStage(data.state);
 
+    // Handle ASR review state
+    const asrPanel = get('asrReviewPanel');
+    if (data.state === 'review_asr') {
+      // Stop streaming — pipeline has paused voluntarily
+      stopStreaming();
+      // Always show the panel and load transcript
+      if (asrPanel) {
+        asrPanel.classList.remove('hidden');
+        loadTranscriptToArea();
+      }
+      // Make sure the 'generating' overlay is hidden and button is re-enabled
+      if (videoGenerating) { videoGenerating.classList.add('hidden'); videoGenerating.style.display = ''; }
+      if (videoPlaceholder) videoPlaceholder.classList.remove('hidden');
+      if (generateBtn) generateBtn.disabled = false;
+      if (statusBadge) {
+        statusBadge.textContent = 'REVIEW';
+        statusBadge.className   = 'px-3 py-1 rounded-full bg-sky-500/15 border border-sky-500/30 text-[10px] font-black tracking-widest uppercase text-sky-400';
+      }
+      return; // Don't continue to done/failed handling below
+    } else {
+      if (asrPanel) asrPanel.classList.add('hidden');
+    }
+
     // Show storyboard panel once storyboard stage starts
     if (data.state === 'storyboard' || data.state === 'images') {
       if (storyboardData.length === 0) loadStoryboard();
@@ -337,6 +361,50 @@ document.addEventListener('DOMContentLoaded', () => {
     if (data.state === 'done')   onComplete();
     if (data.state === 'failed') onError(msg);
   }
+
+
+  async function loadTranscriptToArea() {
+    if (!projectId) return;
+    try {
+      const r = await fetch(`/api/projects/${projectId}/transcript`);
+      if (r.ok) {
+        const d = await r.json();
+        const area = get('asrTranscriptArea');
+        if (area) area.value = d.transcript;
+      }
+    } catch (_) {}
+  }
+
+  async function continuePipeline() {
+    if (!projectId) return;
+    const btn = get('continuePipelineBtn');
+    const area = get('asrTranscriptArea');
+    
+    if (btn) { btn.disabled = true; btn.textContent = 'Continuing…'; }
+    
+    try {
+      // 1. Save changes
+      if (area) {
+        await fetch(`/api/projects/${projectId}/transcript`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transcript: area.value }),
+        });
+      }
+      
+      // 2. Continue
+      const r = await fetch(`/api/projects/${projectId}/continue`, { method: 'POST' });
+      if (!r.ok) throw new Error('Failed to resume pipeline');
+      
+      logLine('Pipeline resumed ✓', 'success');
+      setBusy(true);
+      startStreaming();
+    } catch (err) {
+      logLine(`Error: ${err.message}`, 'error');
+      if (btn) { btn.disabled = false; btn.textContent = 'Confirm & Continue'; }
+    }
+  }
+  window.continuePipeline = continuePipeline;
 
   // ── Completion ───────────────────────────────────────────────────────────
   function onComplete() {

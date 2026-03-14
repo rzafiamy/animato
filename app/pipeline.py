@@ -1000,7 +1000,7 @@ def _concat_videos(video_paths: List[Path], audio_path: Path, output_path: Path)
 # Main pipeline entry point
 # ──────────────────────────────────────────────────────────────────────────────
 
-def run_project(project_id: str, reset: bool = False) -> None:
+def run_project(project_id: str, reset: bool = False, skip_asr: bool = False) -> None:
     provider = get_provider()
     paths = ensure_project_dirs(project_id)
 
@@ -1041,15 +1041,31 @@ def run_project(project_id: str, reset: bool = False) -> None:
 
     # ── Stage 1: ASR ───────────────────────────────────────────────────────────
     transcript_path = paths["output"] / "transcript.srt"
-    if transcript_path.exists():
+    
+    # If transcript exists and we are NOT resetting, we can load it.
+    # However, if we just generated it, we MUST pause for review.
+    
+    if transcript_path.exists() and (not reset or skip_asr):
         write_status(project_id, {"state": "asr", "progress": 10,
-                                  "message": "Using cached transcript"})
+                                  "message": "Using existing transcript"})
         transcript = transcript_path.read_text(encoding="utf-8")
     else:
+        # We need to generate a new transcription
         write_status(project_id, {"state": "asr", "progress": 10,
                                   "message": "Transcribing audio with timestamps…"})
         transcript = provider.transcribe(audio_path)
         transcript_path.write_text(transcript, encoding="utf-8")
+        
+        # STOP HERE for user review
+        write_status(project_id, {
+            "state": "review_asr", 
+            "progress": 15,
+            "message": "Please review and confirm the transcription before proceeding."
+        })
+        return
+
+    # If the user specifically asked to skip ASR (i.e., we are continuing after review)
+    # we just fall through to Stage 2.
 
     # ── Stage 2: Script ────────────────────────────────────────────────────────
     script_path = paths["output"] / "script.json"
