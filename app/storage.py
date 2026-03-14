@@ -40,9 +40,18 @@ def read_status(project_id: str) -> Dict[str, Any]:
     path = status_path(project_id)
     if not path.exists():
         return {"state": "new", "progress": 0, "message": "Not started"}
-    return json.loads(path.read_text())
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {"state": "unknown", "progress": 0, "message": "Status unreadable (corrupted)"}
 
 
 def write_status(project_id: str, data: Dict[str, Any]) -> None:
     path = status_path(project_id)
-    path.write_text(json.dumps(data, indent=2))
+    tmp = path.with_suffix(".tmp")
+    try:
+        tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+        tmp.replace(path)
+    except Exception:
+        tmp.unlink(missing_ok=True)
+        raise
