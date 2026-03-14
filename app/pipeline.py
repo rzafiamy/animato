@@ -192,7 +192,9 @@ def _render_slide_video(
         "-vf", filters,
         "-r", str(FPS),
         "-c:v", "libx264",
-        "-b:v", VIDEO_BITRATE,
+        "-crf", "18",          # quality-based encoding (visually lossless)
+        "-maxrate", VIDEO_BITRATE,
+        "-bufsize", "10M",     # buffer for rate smoothing
         "-preset", "fast",
         "-pix_fmt", "yuv420p",
         "-movflags", "+faststart",
@@ -235,6 +237,8 @@ def _render_fallback_slide(slide: Slide, out_path: Path) -> None:
         "-t", str(duration),
         "-r", str(FPS),
         "-c:v", "libx264",
+        "-crf", "18",
+        "-preset", "fast",
         "-pix_fmt", "yuv420p",
         "-movflags", "+faststart",
         str(out_path),
@@ -253,15 +257,13 @@ def _concat_videos(video_paths: List[Path], audio_path: Path, output_path: Path)
 
     temp_video = output_path.parent / "_temp_noaudio.mp4"
 
-    # Step 1: concatenate slide videos (video only)
+    # Step 1: concatenate slide videos (copy stream — already encoded at CRF 18)
     _run_ffmpeg([
         ffmpeg, "-y",
         "-f", "concat",
         "-safe", "0",
         "-i", str(list_file),
-        "-c:v", "libx264",
-        "-preset", "fast",
-        "-pix_fmt", "yuv420p",
+        "-c:v", "copy",          # no re-encode loss; slides already at quality
         "-movflags", "+faststart",
         str(temp_video),
     ])

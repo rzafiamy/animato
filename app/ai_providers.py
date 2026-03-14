@@ -76,6 +76,38 @@ def _extract_json(raw: str) -> str:
     return raw
 
 
+# Patterns that indicate literal text was embedded in an image prompt.
+# Image generation AI cannot render text reliably, so we strip/replace them.
+_TEXT_IN_PROMPT_PATTERNS = [
+    # 'neon sign reading "X"', 'sign saying "X"', 'text reading X', etc.
+    (re.compile(
+        r'\b(?:neon\s+)?(?:text|label|sign|caption|bold text|neon text|chrome text)'
+        r'\s+(?:reading|saying|spelling|labeled|that reads?|written)\s+'
+        r'(?:["\'])[^\'"]{2,60}(?:["\'])',
+        re.IGNORECASE), ''),
+    # Fallback: any quoted string ≥ 2 words (likely a text label to avoid)
+    (re.compile(r'["\']([A-Za-z0-9][A-Za-z0-9 &\'\-]{2,50})["\']'), ''),
+    # 'chrome typography reading …', 'bold typography …', 'neon typography …'
+    (re.compile(r'\b(?:chrome|bold|neon|retro|80s)\s+typography\b[^,\.]*', re.IGNORECASE), 'bold geometric shapes'),
+    # standalone 'typography' keyword with trailing phrase
+    (re.compile(r'\btypography\b[^,\.]*', re.IGNORECASE), 'geometric forms'),
+    # 'chrome text' alone
+    (re.compile(r'\bchrome\s+text\b[^,\.]*', re.IGNORECASE), 'chrome geometric surfaces'),
+]
+
+def _sanitize_image_prompt(prompt: str) -> str:
+    """Remove any literal text/label/typography from an image prompt.
+    Image AI models cannot render text reliably; all textual references
+    must be replaced with pure visual/abstract descriptions instead.
+    """
+    for pattern, replacement in _TEXT_IN_PROMPT_PATTERNS:
+        prompt = pattern.sub(replacement, prompt)
+    # Clean up double spaces / trailing commas left after removal
+    prompt = re.sub(r',\s*,', ',', prompt)
+    prompt = re.sub(r'\s{2,}', ' ', prompt).strip(' ,')
+    return prompt
+
+
 def _retry(fn, label: str, retries: int = MAX_RETRIES):
     """Call fn(), retrying up to `retries` times with exponential back-off."""
     last_exc: Optional[Exception] = None
@@ -225,7 +257,13 @@ class OpenAIProvider(AIProvider):
                 f"Visual style: {style}\n\n"
                 "Return a JSON object {\"scenes\": [...]}. Each scene:\n"
                 "  - title: short punchy header, max 8 words, NO special characters\n"
-                "  - image_prompt: rich visual description using the stated style, landscape 16:9\n"
+                "  - image_prompt: rich VISUAL description using the stated style, landscape 16:9.\n"
+                "    CRITICAL IMAGE PROMPT RULES — the image AI cannot render text:\n"
+                "    * NEVER include any words, letters, numbers, labels, signs, or typography in the image_prompt\n"
+                "    * NEVER use phrases like 'text reading X', 'label X', 'sign X', 'typography X', 'chrome text'\n"
+                "    * Describe ONLY shapes, colors, lighting, textures, compositions, and abstract elements\n"
+                "    * Replace any textual concept with a pure visual metaphor (e.g. instead of 'sign reading ERROR'\n"
+                "      use 'a fractured red glowing geometric shape')\n"
                 "  - bullets: list of 2–4 on-screen talking points, max 10 words each\n"
                 f"  - duration: float seconds (all scenes must sum to ~{duration:.1f}s)\n"
                 f"  - start_time: float seconds from audio start (first scene: {chunk_start_t:.2f})\n\n"
@@ -282,6 +320,7 @@ class OpenAIProvider(AIProvider):
                     bullets.append(clean)
 
             image_prompt = str(item.get("image_prompt", "Abstract professional background"))[:500]
+            image_prompt = _sanitize_image_prompt(image_prompt)
             duration = max(4.0, float(item.get("duration") or 8))
             start_time = max(0.0, float(item.get("start_time") or 0))
 
@@ -302,10 +341,15 @@ class OpenAIProvider(AIProvider):
         Returns actual file extension used ('png' or 'jpg')."""
         import base64
 
+        # Final sanitization: strip any remaining text/typography references
+        clean_prompt = _sanitize_image_prompt(prompt)
+        # Prefix a hard constraint: image AI must not render any text
+        clean_prompt = "No text, no words, no letters, no labels, no signs. " + clean_prompt
+
         def _call():
             resp = self.client.images.generate(
                 model=self.dalle_model,
-                prompt=prompt[:950],  # DALL-E limit
+                prompt=clean_prompt[:950],  # DALL-E limit
                 size="1792x1024",
                 quality=self.dalle_quality,  # type: ignore[arg-type]
                 response_format="b64_json",
