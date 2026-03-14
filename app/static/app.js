@@ -47,13 +47,57 @@ document.addEventListener('DOMContentLoaded', () => {
   const stagesList       = get('stagesList');
 
   // ── State ────────────────────────────────────────────────────────────────
-  let projectId       = null;
-  let selectedFile    = null;
-  let sseSource       = null;
-  let pollInterval    = null;
-  let activeStage     = null;
-  let editingSlideIdx = null;
-  let storyboardData  = [];
+  let projectId        = null;
+  let selectedFile     = null;
+  let sseSource        = null;
+  let pollInterval     = null;
+  let activeStage      = null;
+  let editingSlideIdx  = null;
+  let storyboardData   = [];
+  let selectedArtStyle  = localStorage.getItem('animato_art_style')  || 'photo';
+  let selectedVideoStyle = localStorage.getItem('animato_video_style') || 'modern';
+
+  // ── Style definitions ────────────────────────────────────────────────────
+  const VIDEO_STYLES = {
+    modern:  { name: 'Modern',   color: 'sky',    dot: '#38bdf8' },
+    vintage: { name: 'Vintage',  color: 'amber',  dot: '#f59e0b' },
+    kawaii:  { name: 'Kawaii',   color: 'pink',   dot: '#ec4899' },
+    neon:    { name: 'Neon',     color: 'violet', dot: '#a855f7' },
+    minimal: { name: 'Minimal',  color: 'slate',  dot: '#94a3b8' },
+  };
+
+  const ART_STYLES = {
+    photo:        'Hyper-Real Photo',
+    cinematic:    'Epic Cinematic',
+    cyberpunk:    'Surreal Cyberpunk',
+    cartoon:      'Vibrant Cartoon',
+    pixar:        'Pixar 3D Render',
+    flat:         'Flat Illustration',
+    isometric:    'Isometric Vector',
+    watercolor:   'Watercolour',
+    mono:         'Monochrome',
+    synthwave:    'Retro Synthwave',
+    noir:         'Neo-Noir Grit',
+    baroque:      'Baroque Painting',
+    anime:        'High-Detail Anime',
+    manga:        'B&W Manga',
+    vintage_pulp: 'Vintage Pulp',
+    steampunk:    'Steampunk',
+    fantasy_epic: 'High Fantasy',
+    gothic:       'Gothic Dark',
+    lowpoly:      'Low-Poly Render',
+    lego:         'LEGO Build',
+    ukiyoe:       'Ukiyo-e Print',
+    concept_art:  'Concept Art',
+    impressionist:'Impressionist',
+    brutalist:    'Brutalist',
+    futuristic_ui:'Futuristic HUD',
+    claymation:   'Claymation',
+    stained_glass:'Stained Glass',
+    charcoal:     'Charcoal Sketch',
+    dieselpunk:   'Dieselpunk',
+    kawaii:       'Cute Kawaii',
+  };
 
   // ── View router (exposed globally for onclick="showView(...)") ────────────
   const VIEWS = ['home', 'studio', 'projects'];
@@ -118,6 +162,45 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     lucide.createIcons();
   }
+
+  // ── Style selectors ──────────────────────────────────────────────────────
+  function buildVideoStyleGrid() {
+    const grid = get('videoStyleGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    Object.entries(VIDEO_STYLES).forEach(([key, cfg]) => {
+      const btn = document.createElement('button');
+      btn.className = `style-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-white/3 text-slate-400 ${selectedVideoStyle === key ? 'selected text-white' : ''}`;
+      btn.innerHTML = `<span class="inline-block w-1.5 h-1.5 rounded-full mr-1.5 align-middle" style="background:${cfg.dot}"></span>${cfg.name}`;
+      btn.addEventListener('click', () => {
+        selectedVideoStyle = key;
+        localStorage.setItem('animato_video_style', key);
+        buildVideoStyleGrid();
+      });
+      grid.appendChild(btn);
+    });
+  }
+
+  function buildArtStyleGrid() {
+    const grid = get('artStyleGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    Object.entries(ART_STYLES).forEach(([key, name]) => {
+      const btn = document.createElement('button');
+      btn.className = `style-btn px-2 py-1.5 rounded-lg text-[10px] font-bold bg-white/3 text-slate-500 text-center leading-tight ${selectedArtStyle === key ? 'selected !text-sky-300' : ''}`;
+      btn.textContent = name;
+      btn.title = name;
+      btn.addEventListener('click', () => {
+        selectedArtStyle = key;
+        localStorage.setItem('animato_art_style', key);
+        buildArtStyleGrid();
+      });
+      grid.appendChild(btn);
+    });
+  }
+
+  buildVideoStyleGrid();
+  buildArtStyleGrid();
 
   // ── Helpers ──────────────────────────────────────────────────────────────
   function escHtml(str) {
@@ -418,8 +501,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 3. Start pipeline
         const reset = get('forceReset')?.checked ?? false;
-        logLine('Launching AI pipeline…', 'system');
-        const gr = await fetch(`/api/projects/${project_id}/generate?reset=${reset}`, { method: 'POST' });
+        logLine(`Launching AI pipeline… art=${selectedArtStyle} theme=${selectedVideoStyle}`, 'system');
+        const gr = await fetch(
+          `/api/projects/${project_id}/generate?reset=${reset}&art_style=${selectedArtStyle}&video_style=${selectedVideoStyle}`,
+          { method: 'POST' }
+        );
         if (!gr.ok) {
           const err = await gr.json().catch(() => ({}));
           throw new Error(err.detail || 'Failed to start pipeline');
@@ -472,7 +558,8 @@ document.addEventListener('DOMContentLoaded', () => {
     storyboardData.forEach((slide, i) => {
       const idx  = i + 1;
       const card = document.createElement('div');
-      card.className = 'slide-card glass rounded-2xl p-4 border border-white/5 cursor-pointer group';
+      card.className = 'slide-card glass rounded-2xl p-4 border border-white/5 cursor-pointer group card-enter';
+      card.style.animationDelay = `${i * 55}ms`;
       card.innerHTML = `
         <div class="aspect-video rounded-xl overflow-hidden bg-slate-900 border border-white/5 mb-3 relative">
           <img
@@ -486,7 +573,10 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
         <h4 class="text-xs font-bold text-slate-300 mb-1 truncate">${escHtml(slide.title)}</h4>
-        <p class="text-[10px] text-slate-600 truncate">${escHtml((slide.image_prompt || '').substring(0, 60))}…</p>
+        <div class="flex items-center gap-1.5 mb-1.5">
+          ${slide.layout ? `<span class="text-[9px] font-black uppercase tracking-widest text-indigo-400/70 bg-indigo-500/10 px-1.5 py-0.5 rounded">${escHtml(slide.layout)}</span>` : ''}
+          ${slide.style  ? `<span class="text-[9px] font-black uppercase tracking-widest text-purple-400/70 bg-purple-500/10 px-1.5 py-0.5 rounded">${escHtml(slide.style)}</span>` : ''}
+        </div>
         <div class="flex items-center justify-between mt-2">
           <span class="text-[10px] font-mono text-slate-600">${(slide.duration || 0).toFixed(1)}s</span>
           <button class="text-[10px] font-bold uppercase tracking-widest text-sky-500 hover:text-sky-300 transition open-slide-btn" data-idx="${idx}">Edit →</button>

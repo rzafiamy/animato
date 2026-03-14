@@ -197,17 +197,21 @@ def _escape_drawtext(value: str) -> str:
 # ──────────────────────────────────────────────────────────────────────────────
 
 def _fade_in(start: float, dur: float = 0.8) -> str:
-    """Alpha fade-in: invisible until `start` s, then fades over `dur` seconds."""
+    """Alpha fade-in: invisible until `start` s, then fades over `dur` seconds.
+    Commas are literal — caller must wrap in single quotes: alpha='{expr}'
+    """
     end = round(start + dur, 3)
-    return f"if(lt(t\\,{start})\\,0\\,if(lt(t\\,{end})\\,(t-{start})/{dur}\\,1))"
+    return f"if(lt(t,{start}),0,if(lt(t,{end}),(t-{start})/{dur},1))"
 
 
 def _slide_up_y(base_y: int, start: float = 0.2, dur: float = 0.7, px: int = 20) -> str:
-    """Y expression: element slides up by `px` pixels over `dur` seconds starting at `start`."""
+    """Y expression: slides up `px` pixels over `dur` s starting at `start`.
+    Commas are literal — caller must wrap in single quotes: y='{expr}'
+    """
     end = round(start + dur, 3)
     return (
-        f"if(lt(t\\,{start})\\,{base_y + px}\\,"
-        f"if(lt(t\\,{end})\\,{base_y}+{px}*(1-(t-{start})/{dur})\\,{base_y}))"
+        f"if(lt(t,{start}),{base_y + px},"
+        f"if(lt(t,{end}),{base_y}+{px}*(1-(t-{start})/{dur}),{base_y}))"
     )
 
 
@@ -434,6 +438,298 @@ def _build_visual_filters(
                    size=sm_bul,
                    alpha=_fade_in(0.65 + i * 0.3, 0.55))
 
+    elif layout == "split_left":
+        # Mirror of split_right: dark left half, left-aligned text
+        box(0, 0, int(W * 0.50), H, "black@0.78")
+        title_y = int(H * 0.20)
+        title(str(pad_x), title_y, title_size, alpha=_fade_in(0.3, 0.8))
+        sep(pad_x, title_y + title_size + 10, int(W * 0.44) - pad_x)
+        bul_y = title_y + title_size + 30
+        for i, b in enumerate(bullets[:4]):
+            bullet(b, str(pad_x), bul_y + i * line_h, alpha=_fade_in(0.7 + i * 0.22, 0.55))
+
+    elif layout == "vignette_all":
+        # Dark vignette on all 4 edges, centered text
+        vig_h, vig_w = int(H * 0.22), int(W * 0.15)
+        box(0, 0, W, vig_h, "black@0.72")
+        box(0, H - vig_h, W, vig_h, "black@0.72")
+        box(0, 0, vig_w, H, "black@0.60")
+        box(W - vig_w, 0, vig_w, H, "black@0.60")
+        title_y = int(H * 0.40)
+        title("(W-tw)/2", title_y, title_size,
+              alpha=_fade_in(0.4, 1.0), y_expr=_slide_up_y(title_y, 0.4, 0.9, 22))
+        bul_y = title_y + title_size + 22
+        for i, b in enumerate(bullets[:3]):
+            bullet(b, str(pad_x), bul_y + i * line_h, alpha=_fade_in(0.9 + i * 0.25, 0.6))
+
+    elif layout == "oversized":
+        # Giant 1.6× title, subtle global overlay
+        box(0, 0, W, H, "black@0.25")
+        big = int(title_size * 1.60)
+        title_y = int(H * 0.32)
+        title("(W-tw)/2", title_y, big,
+              alpha=_fade_in(0.3, 1.1), y_expr=_slide_up_y(title_y, 0.3, 1.0, 35))
+        sep(pad_x, title_y + big + 18, W - pad_x * 2, 1)
+        if bullets:
+            bullet(bullets[0], "(W-tw)/2", title_y + big + 34,
+                   size=int(bul_size * 0.90), alpha=_fade_in(1.1, 0.8))
+
+    elif layout == "ribbon":
+        # Horizontal dark band across mid-screen, text inside
+        rib_y, rib_h = int(H * 0.38), int(H * 0.26)
+        box(0, rib_y, W, rib_h, "black@0.85")
+        title_y = rib_y + 18
+        title("(W-tw)/2", title_y, title_size,
+              alpha=_fade_in(0.3, 0.8), y_expr=_slide_up_y(title_y, 0.3, 0.8, 14))
+        sep(pad_x, title_y + title_size + 8, W - pad_x * 2, 1)
+        bul_y = title_y + title_size + 24
+        for i, b in enumerate(bullets[:2]):
+            bullet(b, "(W-tw)/2", bul_y + i * line_h,
+                   size=int(bul_size * 0.90), alpha=_fade_in(0.7 + i * 0.25, 0.55))
+
+    elif layout == "news_full":
+        # Wide deep bottom band (full newscast style)
+        grad_y = int(H * 0.48)
+        box(0, grad_y, W, H - grad_y, "black@0.90")
+        sep(0, grad_y, W, fs["sep_h"] + 2)
+        title_y = grad_y + 22
+        title(str(pad_x), title_y, title_size,
+              alpha=_fade_in(0.2, 0.7), y_expr=_slide_up_y(title_y, 0.2, 0.7, 14))
+        bul_y = title_y + title_size + 20
+        for i, b in enumerate(bullets[:4]):
+            bullet(b, str(pad_x), bul_y + i * line_h, alpha=_fade_in(0.55 + i * 0.18, 0.50))
+
+    elif layout == "left_panel":
+        # Narrow dark left panel (38%), text inside
+        panel_w = int(W * 0.38)
+        box(0, 0, panel_w, H, "black@0.82")
+        sm = int(title_size * 0.88)
+        title_y = int(H * 0.25)
+        title(str(pad_x), title_y, sm,
+              alpha=_fade_in(0.3, 0.8), y_expr=_slide_up_y(title_y, 0.3, 0.8, 14))
+        sep(pad_x, title_y + sm + 10, panel_w - pad_x * 2)
+        bul_y = title_y + sm + 30
+        for i, b in enumerate(bullets[:5]):
+            bullet(b, str(pad_x), bul_y + i * line_h,
+                   size=int(bul_size * 0.85), alpha=_fade_in(0.65 + i * 0.20, 0.55))
+
+    elif layout == "floating_right":
+        # Floating dark box at right side, text inside
+        box(0, 0, W, H, "black@0.18")
+        fx = int(W * 0.54)
+        fy = int(H * 0.22)
+        fw = int(W * 0.42)
+        bul_count = min(len(bullets), 5)
+        fh = max(title_size + 30 + bul_count * line_h + 36, int(H * 0.50))
+        box(fx, fy, fw, fh, "black@0.78")
+        ix, iy = fx + 24, fy + 22
+        sm = int(title_size * 0.88)
+        title(str(ix), iy, sm, alpha=_fade_in(0.3, 0.8), y_expr=_slide_up_y(iy, 0.3, 0.8, 12))
+        sep(ix, iy + sm + 8, fw - 48)
+        bul_y = iy + sm + 26
+        for i, b in enumerate(bullets[:5]):
+            bullet(b, str(ix), bul_y + i * line_h,
+                   size=int(bul_size * 0.82), alpha=_fade_in(0.65 + i * 0.20, 0.50))
+
+    elif layout == "letterbox":
+        # Cinema letterbox: solid black bars top + bottom
+        bar_h = int(H * 0.12)
+        box(0, 0, W, bar_h, "black@1.0")
+        box(0, H - bar_h, W, bar_h, "black@1.0")
+        box(0, H - bar_h * 3, W, bar_h * 2, "black@0.58")
+        title_y = H - bar_h + max(4, int(bar_h * 0.18))
+        title("(W-tw)/2", title_y, int(title_size * 0.72), alpha=_fade_in(0.4, 0.8))
+        if bullets:
+            sub_esc = _escape_drawtext(bullets[0])
+            parts.append(
+                f"drawtext={font_spec}fontcolor={fs['bullet_color']}:fontsize={int(bul_size * 0.65)}:"
+                f"x='(W-tw)/2':y='{int(bar_h * 0.28)}':"
+                f"text='{sub_esc}':"
+                f"shadowcolor={fs['bullet_shadow']}:shadowx=1:shadowy=1:box=0"
+                f":alpha='{_fade_in(0.6, 0.7)}'"
+            )
+
+    elif layout == "chapter":
+        # Elegant chapter marker: thin rules + large centered title
+        box(0, 0, W, H, "black@0.32")
+        big = int(title_size * 1.18)
+        title_y = int(H * 0.40)
+        sep(int(W * 0.20), title_y - 18, int(W * 0.60), 1)
+        title("(W-tw)/2", title_y, big,
+              alpha=_fade_in(0.4, 1.0), y_expr=_slide_up_y(title_y, 0.4, 1.0, 20))
+        sep(int(W * 0.20), title_y + big + 20, int(W * 0.60), 1)
+        bul_y = title_y + big + 38
+        for i, b in enumerate(bullets[:2]):
+            bullet(b, "(W-tw)/2", bul_y + i * line_h,
+                   size=int(bul_size * 0.88), alpha=_fade_in(1.1 + i * 0.30, 0.70))
+
+    elif layout == "stat":
+        # Statistics focus: small title + HUGE first bullet (for numbers/percentages)
+        box(0, 0, W, int(H * 0.30), "black@0.72")
+        box(0, int(H * 0.78), W, int(H * 0.22), "black@0.55")
+        title(str(pad_x), pad_y, int(title_size * 0.58), alpha=_fade_in(0.2, 0.6))
+        if bullets:
+            huge = int(title_size * 1.90)
+            stat_esc = _escape_drawtext(bullets[0])
+            parts.append(
+                f"drawtext={font_spec}fontcolor={fs['title_color']}:fontsize={huge}:"
+                f"x='(W-tw)/2':y='{int(H * 0.28)}':"
+                f"text='{stat_esc}':"
+                f"shadowcolor={fs['title_shadow']}:shadowx=5:shadowy=5:box=0"
+                f":alpha='{_fade_in(0.5, 1.1)}'"
+            )
+            sm_bul = int(bul_size * 0.80)
+            for i, b in enumerate(bullets[1:4]):
+                bullet(b, str(pad_x), int(H * 0.80) + i * (sm_bul + 10),
+                       size=sm_bul, alpha=_fade_in(1.3 + i * 0.20, 0.50))
+
+    elif layout == "broadcast_tag":
+        # News chyron: info tag at very bottom
+        tag_h = int(H * 0.15)
+        tag_y = H - tag_h
+        box(0, tag_y, W, tag_h, "black@0.90")
+        sep(0, tag_y, W, fs["sep_h"])
+        title(str(pad_x), tag_y + int(tag_h * 0.18), int(title_size * 0.65),
+              alpha=_fade_in(0.2, 0.7))
+        if bullets:
+            txt = _escape_drawtext(f"{fs['bullet_char']}{bullets[0]}")
+            parts.append(
+                f"drawtext={font_spec}fontcolor={fs['bullet_color']}:fontsize={int(bul_size * 0.62)}:"
+                f"x='{pad_x}':y='{tag_y + int(tag_h * 0.60)}':"
+                f"text='{txt}':"
+                f"shadowcolor={fs['bullet_shadow']}:shadowx=1:shadowy=1:box=0"
+                f":alpha='{_fade_in(0.5, 0.6)}'"
+            )
+
+    elif layout == "corner_tl":
+        # Compact info block in top-left corner
+        sm = int(title_size * 0.80)
+        box(0, 0, int(W * 0.42), int(H * 0.42), "black@0.78")
+        title_y = pad_y
+        title(str(pad_x), title_y, sm,
+              alpha=_fade_in(0.3, 0.8), y_expr=_slide_up_y(title_y, 0.3, 0.8, 12))
+        sep(pad_x, title_y + sm + 8, int(W * 0.34))
+        bul_y = title_y + sm + 26
+        for i, b in enumerate(bullets[:3]):
+            bullet(b, str(pad_x), bul_y + i * line_h,
+                   size=int(bul_size * 0.78), alpha=_fade_in(0.6 + i * 0.20, 0.50))
+
+    elif layout == "corner_br":
+        # Info block at bottom-right corner
+        cw, ch = int(W * 0.44), int(H * 0.44)
+        box(W - cw, H - ch, cw, ch, "black@0.80")
+        cp = pad_x
+        sm = int(title_size * 0.80)
+        title_y = H - ch + 24
+        title(f"W-tw-{cp}", title_y, sm, alpha=_fade_in(0.3, 0.8))
+        sep(W - cw + cp, title_y + sm + 8, cw - cp * 2)
+        bul_y = title_y + sm + 26
+        for i, b in enumerate(bullets[:3]):
+            esc = _escape_drawtext(f"{fs['bullet_char']}{b}")
+            parts.append(
+                f"drawtext={font_spec}fontcolor={fs['bullet_color']}:fontsize={int(bul_size * 0.78)}:"
+                f"x='W-tw-{cp}':y='{bul_y + i * line_h}':"
+                f"text='{esc}':"
+                f"shadowcolor={fs['bullet_shadow']}:shadowx=2:shadowy=2:box=0"
+                f":alpha='{_fade_in(0.6 + i * 0.20, 0.50)}'"
+            )
+
+    elif layout == "title_center":
+        # Title horizontally centered, left-aligned bullets below
+        box(0, 0, W, H, "black@0.28")
+        box(0, 0, W, int(H * 0.44), "black@0.32")
+        big = int(title_size * 1.10)
+        title_y = int(H * 0.18)
+        title("(W-tw)/2", title_y, big,
+              alpha=_fade_in(0.3, 0.9), y_expr=_slide_up_y(title_y, 0.3, 0.9, 20))
+        sep(pad_x, title_y + big + 14, W - pad_x * 2)
+        bul_y = int(H * 0.52)
+        for i, b in enumerate(bullets[:4]):
+            bullet(b, str(pad_x), bul_y + i * line_h, alpha=_fade_in(0.7 + i * 0.22, 0.55))
+
+    elif layout == "dark_right":
+        # Heavy dark right 55%, text in that section
+        box(int(W * 0.45), 0, int(W * 0.55), H, "black@0.82")
+        rp = int(W * 0.47)
+        sm = int(title_size * 0.92)
+        title_y = int(H * 0.22)
+        title(str(rp), title_y, sm,
+              alpha=_fade_in(0.3, 0.8), y_expr=_slide_up_y(title_y, 0.3, 0.8, 16))
+        sep(rp, title_y + sm + 10, W - rp - pad_x)
+        bul_y = title_y + sm + 30
+        for i, b in enumerate(bullets[:4]):
+            bullet(b, str(rp), bul_y + i * line_h,
+                   size=int(bul_size * 0.88), alpha=_fade_in(0.68 + i * 0.22, 0.55))
+
+    elif layout == "magazine_bot":
+        # Large bold title at very bottom, full width
+        bot_h = int(H * 0.28)
+        box(0, H - bot_h, W, bot_h, "black@0.80")
+        sep(0, H - bot_h, W, fs["sep_h"])
+        big = int(title_size * 1.15)
+        title_y = H - bot_h + 18
+        title("(W-tw)/2", title_y, big,
+              alpha=_fade_in(0.3, 0.8), y_expr=_slide_up_y(title_y, 0.3, 0.8, 18))
+        bul_y = title_y + big + 14
+        for i, b in enumerate(bullets[:2]):
+            bullet(b, "(W-tw)/2", bul_y + i * (int(bul_size * 0.82) + 8),
+                   size=int(bul_size * 0.82), alpha=_fade_in(0.7 + i * 0.25, 0.55))
+
+    elif layout == "reveal":
+        # Strong reveal gradient from bottom, text in gradient zone
+        box(0, int(H * 0.45), W, int(H * 0.20), "black@0.55")
+        box(0, int(H * 0.65), W, int(H * 0.35), "black@0.88")
+        title_y = int(H * 0.67)
+        title(str(pad_x), title_y, title_size,
+              alpha=_fade_in(0.3, 0.8), y_expr=_slide_up_y(title_y, 0.3, 0.8, 18))
+        sep(pad_x, title_y + title_size + 10, W - pad_x * 2)
+        bul_y = title_y + title_size + 28
+        for i, b in enumerate(bullets[:4]):
+            bullet(b, str(pad_x), bul_y + i * line_h, alpha=_fade_in(0.65 + i * 0.20, 0.55))
+
+    elif layout == "two_blocks":
+        # Title top-left block + bullets bottom-right block (separated)
+        box(0, 0, int(W * 0.55), int(H * 0.36), "black@0.78")
+        box(int(W * 0.45), int(H * 0.60), int(W * 0.55), int(H * 0.40), "black@0.80")
+        title(str(pad_x), pad_y, title_size,
+              alpha=_fade_in(0.2, 0.8), y_expr=_slide_up_y(pad_y, 0.2, 0.8, 16))
+        sep(pad_x, pad_y + title_size + 10, int(W * 0.48))
+        rp = int(W * 0.48)
+        bul_y = int(H * 0.63)
+        for i, b in enumerate(bullets[:4]):
+            bullet(b, str(rp), bul_y + i * line_h, alpha=_fade_in(0.7 + i * 0.22, 0.55))
+
+    elif layout == "narrow_card":
+        # Narrow centered card (portrait orientation)
+        box(0, 0, W, H, "black@0.28")
+        cw = int(W * 0.46)
+        cx = (W - cw) // 2
+        ch = int(H * 0.70)
+        cy = (H - ch) // 2
+        box(cx, cy, cw, ch, "black@0.78")
+        ix, iy = cx + 28, cy + 30
+        sm = int(title_size * 0.88)
+        title(str(ix), iy, sm, alpha=_fade_in(0.3, 0.8), y_expr=_slide_up_y(iy, 0.3, 0.8, 12))
+        sep(ix, iy + sm + 10, cw - 56)
+        bul_y = iy + sm + 28
+        for i, b in enumerate(bullets[:5]):
+            bullet(b, str(ix), bul_y + i * line_h,
+                   size=int(bul_size * 0.84), alpha=_fade_in(0.65 + i * 0.20, 0.50))
+
+    elif layout == "fullscreen_text":
+        # Heavy dark overlay, all text centered
+        box(0, 0, W, H, "black@0.72")
+        big = int(title_size * 1.12)
+        title_y = int(H * 0.28)
+        sep(pad_x, int(H * 0.24), W - pad_x * 2, 1)
+        title("(W-tw)/2", title_y, big,
+              alpha=_fade_in(0.3, 0.9), y_expr=_slide_up_y(title_y, 0.3, 0.9, 22))
+        sep(pad_x, title_y + big + 18, W - pad_x * 2, 1)
+        bul_y = title_y + big + 40
+        for i, b in enumerate(bullets[:5]):
+            bullet(b, "(W-tw)/2", bul_y + i * (line_h + 4),
+                   alpha=_fade_in(0.85 + i * 0.25, 0.60))
+
     else:
         # Unknown layout → fall back to hero
         return _build_visual_filters(slide, style_cfg, "hero", bold_font, pad_x, pad_y)
@@ -588,9 +884,27 @@ def run_project(project_id: str, reset: bool = False) -> None:
     paths = ensure_project_dirs(project_id)
 
     if reset:
+        # Preserve settings.json across resets
+        settings_backup = None
+        sp = paths["output"] / "settings.json"
+        if sp.exists():
+            settings_backup = sp.read_text(encoding="utf-8")
         shutil.rmtree(paths["output"], ignore_errors=True)
         shutil.rmtree(paths["assets"], ignore_errors=True)
         paths = ensure_project_dirs(project_id)
+        if settings_backup:
+            (paths["output"] / "settings.json").write_text(settings_backup, encoding="utf-8")
+
+    # Load per-project style settings saved by the API
+    settings_path = paths["output"] / "settings.json"
+    settings: dict = {}
+    if settings_path.exists():
+        try:
+            settings = json.loads(settings_path.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    art_style = settings.get("art_style", "photo")
+    video_style = settings.get("video_style", "modern")
 
     # ── Find audio ─────────────────────────────────────────────────────────────
     audio_files = [f for f in paths["audio"].glob("*") if f.is_file()]
@@ -637,6 +951,10 @@ def run_project(project_id: str, reset: bool = False) -> None:
             raise PipelineError("AI produced an empty storyboard.")
         _save_storyboard(storyboard_path, slides)
 
+    # ── Apply project video_style to all slides ────────────────────────────────
+    for slide in slides:
+        slide.style = video_style
+
     # ── Adjust durations to match actual audio length ─────────────────────────
     if audio_duration > 0 and slides:
         slides = _sync_durations_to_audio(slides, audio_duration)
@@ -645,8 +963,8 @@ def run_project(project_id: str, reset: bool = False) -> None:
     # ── Stage 4: Image generation (concurrent, max MAX_IMAGES unique) ──────────
     gen_count = min(len(slides), MAX_IMAGES)
     write_status(project_id, {"state": "images", "progress": 60,
-                              "message": f"Generating {gen_count} AI images for {len(slides)} slides…"})
-    _generate_images_concurrent(provider, slides, paths, project_id)
+                              "message": f"Generating {gen_count} AI images ({art_style} style)…"})
+    _generate_images_concurrent(provider, slides, paths, project_id, art_style=art_style)
     _save_storyboard(storyboard_path, slides)
 
     # ── Stage 5: Slide video rendering ────────────────────────────────────────
@@ -726,6 +1044,7 @@ def _generate_images_concurrent(
     slides: List[Slide],
     paths: Dict[str, Path],
     project_id: str,
+    art_style: str = "photo",
 ) -> None:
     """Generate AI images for the first MAX_IMAGES slides; remaining slides reuse earlier images."""
     gen_count = min(len(slides), MAX_IMAGES)
@@ -757,7 +1076,8 @@ def _generate_images_concurrent(
 
         with semaphore:
             try:
-                ext = provider.generate_image(slide.image_prompt, image_base.with_suffix(".png"))
+                ext = provider.generate_image(slide.image_prompt, image_base.with_suffix(".png"),
+                                              art_style=art_style)
                 slide.image_ext = ext
             except Exception as exc:
                 errors.append(f"Slide {idx}: {exc}")

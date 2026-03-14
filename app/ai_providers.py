@@ -28,17 +28,52 @@ class PipelineError(RuntimeError):
 # Data model
 # ──────────────────────────────────────────────────────────────────────────────
 
-# Layout cycle for visual variety – assigned automatically per slide index
+# Layout cycle for visual variety – assigned automatically per slide index (28 total)
 SLIDE_LAYOUTS = [
-    "hero",           # title top-left, sep line, bullets mid (default)
-    "lower_third",    # strong bottom gradient, compact text at bottom
-    "cinematic",      # large centered title, vignette edges, minimal text
-    "card",           # frosted dark card overlay with text inside
-    "top_banner",     # dark top band, title + bullets below
-    "split_right",    # dark right half, right-aligned text
-    "quote",          # full-screen overlay, huge centered title only
-    "minimal_bottom", # thin bottom gradient, small text, image breathes
+    # Original 8
+    "hero", "lower_third", "cinematic", "card",
+    "top_banner", "split_right", "quote", "minimal_bottom",
+    # 20 new layouts
+    "split_left", "vignette_all", "oversized", "ribbon",
+    "news_full", "left_panel", "floating_right", "letterbox",
+    "chapter", "stat", "broadcast_tag", "corner_tl",
+    "corner_br", "title_center", "dark_right", "magazine_bot",
+    "reveal", "two_blocks", "narrow_card", "fullscreen_text",
 ]
+
+# Art styles for image generation – visual modifier appended to each image prompt
+ART_STYLES: dict = {
+    "photo":        {"name": "Hyper-Real Photo",        "modifier": "hyper-realistic DSLR photography, lifelike textures, natural lighting, shallow depth of field"},
+    "cinematic":    {"name": "Epic Cinematic",           "modifier": "epic widescreen cinema frame, dramatic rim lighting, rich colour grading, shallow focus, massive scale"},
+    "cyberpunk":    {"name": "Surreal Cyberpunk",        "modifier": "surrealist cyberpunk, vibrant neon blues and magentas, rain-slick streets, holographic atmosphere, cinematic haze"},
+    "cartoon":      {"name": "Vibrant Cartoon",          "modifier": "classic 2D cartoon illustration, bold outlines, saturated flat colours, expressive simplified shapes"},
+    "pixar":        {"name": "Pixar 3D Render",          "modifier": "polished Pixar-style 3D render, physically-based materials, cinematic lighting rigs, subsurface scattering"},
+    "flat":         {"name": "Flat Illustration",        "modifier": "clean flat vector illustration, solid shapes, limited pastel palette, long soft shadows, minimal gradients"},
+    "isometric":    {"name": "Isometric Vector",         "modifier": "crisp isometric vector art, 120-degree angles, uniform stroke weight, bright tech-friendly palette"},
+    "watercolor":   {"name": "Watercolour Pastel",       "modifier": "soft watercolour painting, delicate brush-stroke textures, loose bleeding edges, gentle pastel palette"},
+    "mono":         {"name": "Minimalist Monochrome",    "modifier": "minimalist high-contrast monochrome, strong geometric composition, generous negative space, editorial aesthetic"},
+    "synthwave":    {"name": "Retro Synthwave",          "modifier": "1980s synthwave aesthetic, magenta sunset, chrome grid, neon glowing wireframes, VHS nostalgic mood"},
+    "noir":         {"name": "Neo-Noir Grit",            "modifier": "moody neo-noir, chiaroscuro lighting, sharp silhouettes, smoke haze, deep blacks, wet reflective streets"},
+    "baroque":      {"name": "Baroque Painting",         "modifier": "dramatic baroque oil painting, ornate golden highlights, heavy rich fabrics, theatrical chiaroscuro, impasto texture"},
+    "anime":        {"name": "High-Detail Anime",        "modifier": "polished anime art, crisp line art, expressive stylised shading, dynamic poses, rich colour gradients"},
+    "manga":        {"name": "B&W Manga",                "modifier": "classic monochrome manga, screentone shading, clean linework, motion lines, stylised Japanese comic"},
+    "vintage_pulp": {"name": "Vintage Pulp Cover",       "modifier": "retro pulp magazine cover, bold saturated colours, dramatic poses, distressed print texture"},
+    "steampunk":    {"name": "Industrial Steampunk",     "modifier": "richly detailed steampunk, brass machinery, intricate gears, Victorian fashion, warm metallic tones, steam haze"},
+    "fantasy_epic": {"name": "High-Fantasy Epic",        "modifier": "grand high-fantasy scene, sweeping landscape, magical light sources, heroic silhouettes, painterly atmosphere"},
+    "gothic":       {"name": "Gothic Dark Art",          "modifier": "brooding gothic composition, sharp arches, candlelit shadows, melancholic figures, deep desaturated tones"},
+    "lowpoly":      {"name": "Low-Poly Render",          "modifier": "3D low-poly scene, clean faceted geometry, solid flat colours, hard stylised shading, geometric composition"},
+    "lego":         {"name": "LEGO Brick Build",         "modifier": "LEGO brick construction, stud-and-tile geometry, minifigure proportions, plastic materials, toy-friendly colours"},
+    "ukiyoe":       {"name": "Ukiyo-e Woodblock",        "modifier": "traditional Japanese ukiyo-e woodblock print, flat colours, bold outlines, flowing wave patterns, ink texture"},
+    "concept_art":  {"name": "AAA Concept Art",          "modifier": "high-end concept art, dramatic mood lighting, matte-painting precision, layered depth, narrative brushwork"},
+    "impressionist":{"name": "Impressionist Painting",   "modifier": "impressionist oil painting, loose visible brushstrokes, soft edges, vibrant broken colours, light over detail"},
+    "brutalist":    {"name": "Brutalist Architecture",   "modifier": "stark brutalist scene, raw concrete textures, monolithic geometric forms, sharp dramatic shadows"},
+    "futuristic_ui":{"name": "Futuristic HUD",           "modifier": "holographic heads-up display, glowing vector glyphs, clean translucent panels, precise sci-fi iconography"},
+    "claymation":   {"name": "Claymation Style",         "modifier": "claymation stop-motion, soft clay-like materials, handmade imperfections, warm practical lighting"},
+    "stained_glass":{"name": "Stained Glass",            "modifier": "intricate stained-glass artwork, bold lead-frame outlines, jewel-toned translucent colours, glowing backlight"},
+    "charcoal":     {"name": "Charcoal Sketch",          "modifier": "textured charcoal drawing, smudged shadows, rough paper grain, expressive organic linework, bold contrast"},
+    "dieselpunk":   {"name": "Dieselpunk Retro-Tech",    "modifier": "dieselpunk aesthetic, heavy riveted machinery, WWI-era industrial fashion, muted metals, engine smoke haze"},
+    "kawaii":       {"name": "Cute Kawaii",              "modifier": "ultra-cute kawaii illustration, round simplified shapes, soft pastel gradients, charming characters, gentle mood"},
+}
 
 
 @dataclass
@@ -281,23 +316,20 @@ class OpenAIProvider(AIProvider):
             style = self.STYLES[i % len(self.STYLES)]
 
             prompt = (
-                f"You are a cinematographer writing prompts for Flux-Klein, a 4-bit image AI.\n"
-                f"Flux-Klein requires PRECISE, PHYSICALLY GROUNDED descriptions. "
-                f"It does NOT support vague, abstract, symbolic, or imaginative concepts — those produce garbage output.\n"
+                f"You are a video storyboard director.\n"
                 f"Segment timing: {chunk_start_t:.1f}s → {chunk_end_t:.1f}s (duration ~{duration:.1f}s).\n"
-                f"Visual style reference: {style}\n\n"
-                "Return a JSON object {\"scenes\": [...]}. Each scene:\n"
-                "  - title: short punchy header, max 8 words, NO special characters\n"
-                "  - image_prompt: a CONCRETE, PRECISE Flux-Klein image description. Strict rules:\n"
-                "    * Describe a real, physically grounded scene — no metaphors, no surreal ideas, no abstract symbolism\n"
-                "    * Structure: [main subject] + [environment/setting] + [lighting type and direction] + [camera angle] + [material/texture details] + [color palette]\n"
-                "    * Use cinematography terms: '35mm lens', 'f/2.8 shallow bokeh', 'golden-hour side light', 'overhead drone', 'rim lighting', 'diffused window light'\n"
-                "    * Specify materials explicitly: 'brushed aluminium', 'polished concrete', 'rough oak wood', 'frosted glass', 'woven fabric'\n"
-                "    * NO text, words, letters, numbers, signs, labels, screens with content, or any typography\n"
-                "    * NO vague conceptual words: 'symbolizes', 'represents', 'evokes', 'concept of', 'idea of', 'metaphor for'\n"
-                "    * NO imaginative or surreal elements: no impossible physics, no fantasy creatures, no dreamlike scenes\n"
-                "    * MAXIMUM 100 words — be dense, precise, and sensory\n"
-                "  - bullets: list of 2–4 on-screen talking points, max 10 words each\n"
+                f"Visual style reference for image_prompt: {style}\n\n"
+                "Return a JSON object {\"scenes\": [...]}. Each scene has these STRICTLY SEPARATE fields:\n\n"
+                "  - title: THE TOPIC/THEME of this section for the audience (e.g. 'Revenue Growth', 'Key Takeaways'). "
+                "Max 8 words. NEVER describe what an image looks like. NEVER use words like 'shows', 'depicts', 'features'.\n\n"
+                "  - bullets: 2–4 CONTENT FACTS the audience should learn or remember. "
+                "Write as informative talking points (e.g. 'Sales grew 40% year-over-year', 'Three core principles drive success'). "
+                "Max 10 words each. NEVER describe visuals. NEVER say 'shows', 'depicts', 'displays', 'features', 'illustrates'.\n\n"
+                "  - image_prompt: [VISUAL ONLY — never shown as on-screen text] A CONCRETE, PHYSICALLY GROUNDED scene for a background image. "
+                "Structure: [main subject] + [setting] + [lighting] + [camera angle] + [materials] + [colour palette]. "
+                "Use cinematography terms: '35mm lens', 'f/2.8 bokeh', 'golden-hour side light', 'overhead drone', 'rim lighting'. "
+                "Specify materials: 'brushed aluminium', 'polished concrete', 'rough oak wood'. "
+                "NO text/letters/signs in the image. NO vague abstract words. MAXIMUM 100 words.\n\n"
                 f"  - duration: float seconds (all scenes must sum to ~{duration:.1f}s)\n"
                 f"  - start_time: float seconds from audio start (first scene: {chunk_start_t:.2f})\n\n"
                 "Transcript:\n" + text
@@ -378,17 +410,20 @@ class OpenAIProvider(AIProvider):
 
     # ── Image generation ──────────────────────────────────────────────────────
 
-    def generate_image(self, prompt: str, output_path: Path) -> str:
+    def generate_image(self, prompt: str, output_path: Path, art_style: str = "photo") -> str:
         """Generate and save image using b64_json response format.
         Returns actual file extension used ('png' or 'jpg')."""
         import base64
 
-        # Final sanitization: enforce Flux-Klein constraints (no text, concrete scene, ≤100 words)
+        # Sanitize: no text/vague language, enforce 100-word cap
         clean_prompt = _sanitize_image_prompt(prompt)
-        # Prepend a hard no-text constraint (Flux-Klein ignores text rendering requests)
+        # Apply art style modifier for visual harmony across all slides
+        style_cfg = ART_STYLES.get(art_style, ART_STYLES["photo"])
+        style_modifier = style_cfg["modifier"]
+        clean_prompt = f"{clean_prompt}. Style: {style_modifier}."
+        # Hard no-text prefix
         clean_prompt = "No text, no words, no letters, no signs, no labels. " + clean_prompt
-        # Re-enforce 100-word limit after prefix (prefix is ~10 words)
-        clean_prompt = _truncate_to_words(clean_prompt, 100)
+        clean_prompt = _truncate_to_words(clean_prompt, 120)  # slightly wider for style modifier
 
         def _call():
             resp = self.client.images.generate(

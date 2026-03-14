@@ -147,6 +147,8 @@ _active_pipelines: Dict[str, threading.Thread] = {}
 async def generate(
     project_id: str,
     reset: bool = False,
+    art_style: str = "photo",
+    video_style: str = "modern",
 ) -> Dict[str, str]:
     if not project_dir(project_id).exists():
         raise HTTPException(404, "Project not found")
@@ -156,10 +158,18 @@ async def generate(
     if thread and thread.is_alive():
         raise HTTPException(409, "Pipeline already running for this project")
 
+    # Persist style choices so the pipeline can read them
+    from .storage import ensure_project_dirs as _epd
+    _epd(project_id)
+    settings_path = project_dir(project_id) / "output" / "settings.json"
+    settings_path.parent.mkdir(parents=True, exist_ok=True)
+    settings_path.write_text(
+        json.dumps({"art_style": art_style, "video_style": video_style}),
+        encoding="utf-8",
+    )
+
     write_status(project_id, {"state": "queued", "progress": 0, "message": "Queued for processing"})
 
-    # Use an explicit daemon thread — BackgroundTasks can block the event loop
-    # with long-running sync functions (subprocess, openai SDK calls, etc.)
     t = threading.Thread(
         target=_run_pipeline_bg,
         args=(project_id, reset),
